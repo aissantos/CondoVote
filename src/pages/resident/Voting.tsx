@@ -1,15 +1,60 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ThumbsUp, ThumbsDown, MinusCircle, BadgeInfo, Timer } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ArrowLeft, ThumbsUp, ThumbsDown, MinusCircle, BadgeInfo, Timer, Loader2 } from 'lucide-react';
 import BottomNav from '../../components/BottomNav';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function Voting() {
   const navigate = useNavigate();
-  const [selected, setSelected] = useState<string | null>(null);
+  const location = useLocation();
+  const { user } = useAuth();
+  
+  // Topic passado via navegação do componente Topics.tsx
+  const topic = location.state?.topic;
 
-  const handleVote = (option: string) => {
+  const [selected, setSelected] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [profile, setProfile] = useState<{unit_number?: string, block_number?: string, full_name?: string} | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      supabase.from('profiles')
+        .select('unit_number, block_number, full_name')
+        .eq('id', user.id)
+        .single()
+        .then(({ data }) => setProfile(data as any));
+    }
+  }, [user]);
+
+  // Se o usuário acessar a rota diretamente na URL
+  if (!topic) {
+    return (
+      <div className="flex-1 flex flex-col min-h-screen bg-background-light dark:bg-background-dark items-center justify-center p-6 text-center">
+        <p className="text-slate-500 mb-4">Nenhuma pauta selecionada para votação.</p>
+        <button onClick={() => navigate('/topics')} className="text-primary font-bold hover:underline">
+          Voltar para Pautas
+        </button>
+      </div>
+    );
+  }
+
+  const handleVote = async (option: string) => {
     setSelected(option);
-    setTimeout(() => navigate('/success'), 600);
+    setSubmitting(true);
+
+    const { error } = await supabase.from('votes').insert([
+      { topic_id: topic.id, user_id: user?.id, choice: option }
+    ]);
+
+    setSubmitting(false);
+
+    if (error) {
+      alert('Erro ao registrar voto: ' + error.message);
+      setSelected(null);
+    } else {
+      setTimeout(() => navigate('/success'), 600);
+    }
   };
 
   return (
@@ -29,18 +74,25 @@ export default function Voting() {
       <main className="flex-1 flex flex-col px-4 pt-6 pb-24">
         <div className="mb-8 text-center">
           <div className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider mb-4">
-            Pauta #04
+            Em Andamento
           </div>
           <h1 className="text-slate-900 dark:text-white text-3xl font-extrabold leading-tight mb-3">
-            Aprovação da reforma do playground?
+            {topic.title}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-base font-normal leading-relaxed max-w-sm mx-auto">
-            Escolha apenas uma opção. Voto é definitivo e não poderá ser alterado após a confirmação.
+            Escolha apenas uma opção. Seu voto é definitivo, atrelado à sua unidade e não poderá ser alterado.
           </p>
         </div>
 
-        <div className="flex flex-col gap-4 w-full max-w-md mx-auto mb-8">
+        <div className="flex flex-col gap-4 w-full max-w-md mx-auto mb-8 relative">
+          {submitting && (
+            <div className="absolute inset-0 bg-background-light/50 dark:bg-background-dark/50 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-2xl">
+              <Loader2 className="animate-spin text-primary size-8" />
+            </div>
+          )}
+          
           <button
+            disabled={submitting}
             onClick={() => handleVote('SIM')}
             className={`group relative flex items-center w-full p-4 rounded-xl bg-background-light dark:bg-slate-800 border-2 transition-all shadow-sm active:scale-[0.98] ${
               selected === 'SIM'
@@ -81,6 +133,7 @@ export default function Voting() {
           </button>
 
           <button
+            disabled={submitting}
             onClick={() => handleVote('NÃO')}
             className={`group relative flex items-center w-full p-4 rounded-xl bg-background-light dark:bg-slate-800 border-2 transition-all shadow-sm active:scale-[0.98] ${
               selected === 'NÃO'
@@ -121,6 +174,7 @@ export default function Voting() {
           </button>
 
           <button
+            disabled={submitting}
             onClick={() => handleVote('ABSTENÇÃO')}
             className={`group relative flex items-center w-full p-4 rounded-xl bg-background-light dark:bg-slate-800 border-2 transition-all shadow-sm active:scale-[0.98] ${
               selected === 'ABSTENÇÃO'
@@ -170,16 +224,18 @@ export default function Voting() {
               <span className="text-xs font-semibold text-primary uppercase tracking-wide">
                 Você está votando como
               </span>
-              <span className="text-sm font-bold text-slate-900 dark:text-white">Bloco A - Unidade 102</span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white">
+                {profile?.full_name || 'Usuário'}
+                {(profile?.unit_number || profile?.block_number) && ` - Bloco ${profile?.block_number} Unidade ${profile?.unit_number}`}
+              </span>
             </div>
           </div>
           <div className="flex flex-col items-center justify-center gap-2 py-4">
             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
-              Tempo restante
+              Segurança
             </span>
-            <div className="flex items-center gap-2 text-slate-900 dark:text-white font-mono text-2xl font-bold bg-slate-200 dark:bg-slate-800 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700">
-              <Timer className="text-primary animate-pulse" size={24} />
-              04:59
+            <div className="flex items-center gap-2 text-slate-900 dark:text-white font-mono text-sm font-bold bg-slate-200 dark:bg-slate-800 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700">
+              Voto Registrado e Auditável
             </div>
           </div>
         </div>

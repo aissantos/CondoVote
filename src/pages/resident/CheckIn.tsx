@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, User, Building, DoorOpen, CheckCircle2 } from 'lucide-react';
-import { io } from 'socket.io-client';
 
 export default function CheckIn() {
   const navigate = useNavigate();
@@ -9,14 +8,10 @@ export default function CheckIn() {
   const handleCheckIn = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Connect to socket and emit check-in event
-    const socket = io();
-    socket.emit('checkin:new');
-    
-    // Navigate to topics after a short delay to ensure event is sent
+    // Simulate checkin
     setTimeout(() => {
       navigate('/topics');
-    }, 100);
+    }, 400);
   };
 
   return (
@@ -57,7 +52,7 @@ export default function CheckIn() {
                 <User size={20} />
               </span>
               <input
-                className="form-input block w-full rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-[#192633] text-slate-900 dark:text-white pl-10 focus:border-primary focus:ring-primary h-12 sm:text-sm"
+                className="form-input block w-full rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-surface-dark text-slate-900 dark:text-white pl-10 focus:border-primary focus:ring-primary h-12 sm:text-sm"
                 id="name"
                 placeholder="Digite seu nome completo"
                 type="text"
@@ -77,7 +72,7 @@ export default function CheckIn() {
                   <Building size={20} />
                 </span>
                 <input
-                  className="form-input block w-full rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-[#192633] text-slate-900 dark:text-white pl-10 focus:border-primary focus:ring-primary h-12 sm:text-sm"
+                  className="form-input block w-full rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-surface-dark text-slate-900 dark:text-white pl-10 focus:border-primary focus:ring-primary h-12 sm:text-sm"
                   id="block"
                   placeholder="Ex: Bloco A"
                   type="text"
@@ -95,7 +90,7 @@ export default function CheckIn() {
                   <DoorOpen size={20} />
                 </span>
                 <input
-                  className="form-input block w-full rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-[#192633] text-slate-900 dark:text-white pl-10 focus:border-primary focus:ring-primary h-12 sm:text-sm"
+                  className="form-input block w-full rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-surface-dark text-slate-900 dark:text-white pl-10 focus:border-primary focus:ring-primary h-12 sm:text-sm"
                   id="unit"
                   placeholder="Ex: 102"
                   type="text"
