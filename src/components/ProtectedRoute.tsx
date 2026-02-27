@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRole?: 'RESIDENT' | 'ADMIN';
+  allowedRole?: 'RESIDENT' | 'ADMIN' | 'SUPERADMIN';
   requireCompleteProfile?: boolean;
 }
 
@@ -22,18 +22,23 @@ export function ProtectedRoute({ children, allowedRole, requireCompleteProfile =
   }
 
   if (!session) {
-    // Redirecionar para login de admin ou login de morador
-    const redirectTo = location.pathname.startsWith('/admin') ? '/admin/login' : '/';
+    // Redirecionar para login correto dependendo da rota
+    let redirectTo = '/';
+    if (location.pathname.startsWith('/admin')) redirectTo = '/admin/login';
+    if (location.pathname.startsWith('/super')) redirectTo = '/super/login';
+    
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
   if (allowedRole && role !== allowedRole) {
-    // Usuário logado mas sem permissão pra essa rota
-    const fallback = role === 'ADMIN' ? '/admin' : '/check-in';
+    // Usuário logado mas sem permissão
+    let fallback = '/check-in';
+    if (role === 'ADMIN') fallback = '/admin';
+    if (role === 'SUPERADMIN') fallback = '/super';
     return <Navigate to={fallback} replace />;
   }
   
-  // Se for morador, e a rota exigir profile (todas menos o próprio /complete-profile)
+  // Se for morador e não tiver profile completo
   if (role === 'RESIDENT' && requireCompleteProfile) {
     const isProfileIncomplete = !profile?.unit_number || !profile?.block_number;
     if (isProfileIncomplete) {

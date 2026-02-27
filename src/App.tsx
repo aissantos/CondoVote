@@ -22,6 +22,10 @@ import Success from './pages/resident/Success';
 import AdminLogin from './pages/admin/Login';
 import AdminDashboard from './pages/admin/Dashboard';
 
+// SuperAdmin Pages
+import SuperLogin from './pages/superadmin/SuperLogin';
+import SuperDashboard from './pages/superadmin/SuperDashboard';
+
 export default function App() {
   return (
     <ThemeProvider>
@@ -33,6 +37,7 @@ export default function App() {
           <Route path="/" element={<ResidentLogin />} />
           <Route path="/register" element={<ResidentRegister />} />
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/super/login" element={<SuperLogin />} />
 
           {/* Rotas Protegidas - Morador */}
           <Route path="/complete-profile" element={
@@ -56,6 +61,11 @@ export default function App() {
           {/* Rotas Protegidas - Admin */}
           <Route path="/admin/*" element={
             <ProtectedRoute allowedRole="ADMIN"><AdminDashboard /></ProtectedRoute>
+          } />
+
+          {/* Rotas Protegidas - SuperAdmin */}
+          <Route path="/super/*" element={
+            <ProtectedRoute allowedRole="SUPERADMIN"><SuperDashboard /></ProtectedRoute>
           } />
         </Routes>
       </BrowserRouter>
