@@ -3,6 +3,7 @@ import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom'
 import { ShieldAlert, Server, Users, LogOut, Menu, X } from 'lucide-react';
 import SuperOverview from './SuperOverview';
 import SuperManagers from './SuperManagers';
+import SuperCondos from './SuperCondos';
 
 export default function SuperDashboard() {
   const location = useLocation();
@@ -12,6 +13,7 @@ export default function SuperDashboard() {
   const navItems = [
     { path: '/super', icon: Server, label: 'Monitoramento' },
     { path: '/super/managers', icon: Users, label: 'Síndicos' },
+    { path: '/super/condos', icon: Users /* will change icon later if needed */, label: 'Condomínios' },
   ];
 
   const handleNavClick = () => setIsMobileMenuOpen(false);
@@ -94,6 +96,7 @@ export default function SuperDashboard() {
           <Routes>
             <Route path="/" element={<SuperOverview />} />
             <Route path="/managers" element={<SuperManagers />} />
+            <Route path="/condos" element={<SuperCondos />} />
           </Routes>
         </div>
       </main>
