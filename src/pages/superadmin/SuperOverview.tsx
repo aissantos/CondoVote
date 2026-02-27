@@ -4,7 +4,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 // Componente visual do gráfico de Tráfego de Rede mockado
 const NetworkChart = () => {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<{ time: number; reqs: number }[]>([]);
 
   useEffect(() => {
     // Gerar dados randomicos iniciais

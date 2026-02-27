@@ -1,101 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { Building2, Search, Plus, MapPin, Loader2, ImagePlus, UserCircle, X } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-
-type Profile = {
-  id: string;
-  full_name: string | null;
-  role: string;
-};
-
-type Condo = {
-  id: string;
-  cnpj: string;
-  corporate_name: string;
-  trade_name: string;
-  city: string;
-  state: string;
-  logo_url: string | null;
-  manager_id: string | null;
-  manager?: Profile | null;
-};
+import { useCondos } from '../../hooks/useCondos';
 
 export default function SuperCondos() {
-  const [condos, setCondos] = useState<Condo[]>([]);
-  const [managers, setManagers] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { 
+    condos, managers, loading, searchingCnpj, submitting, 
+    fetchData, searchCNPJ, createCondo 
+  } = useCondos();
+  
   const [search, setSearch] = useState('');
   
-  // Modal state
+  // Modal state para formulário GUI UI View
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     cnpj: '', corporate_name: '', trade_name: '',
     address: '', neighborhood: '', city: '', state: '', zip_code: '',
     manager_id: ''
   });
+  
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [searchingCnpj, setSearchingCnpj] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setLoading(true);
-    
-    // Fetch condos with their managers
-    const { data: condosData, error: condosError } = await supabase
-      .from('condos')
-      .select(`
-        *,
-        manager:profiles(id, full_name, role)
-      `)
-      .order('created_at', { ascending: false });
-
-    // Fetch potential managers (role = ADMIN)
-    const { data: managersData } = await supabase
-      .from('profiles')
-      .select('id, full_name, role')
-      .eq('role', 'ADMIN');
-
-    if (!condosError && condosData) {
-      // In JS, foreign tables return as objects. We map them casted
-      setCondos(condosData as Condo[]);
-    }
-    
-    if (managersData) {
-      setManagers(managersData as Profile[]);
-    }
-    
-    setLoading(false);
-  };
+  }, [fetchData]);
 
   const handleCnpjSearch = async () => {
-    const cleanCnpj = formData.cnpj.replace(/\D/g, '');
-    if (cleanCnpj.length !== 14) return alert('CNPJ deve conter 14 dígitos.');
-    
-    setSearchingCnpj(true);
     try {
-      const resp = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`);
-      if (!resp.ok) throw new Error('CNPJ não encontrado ou erro na API.');
-      const data = await resp.json();
-      
+      const data = await searchCNPJ(formData.cnpj);
       setFormData(prev => ({
         ...prev,
-        corporate_name: data.razao_social || '',
-        trade_name: data.nome_fantasia || data.razao_social || '',
-        address: `${data.logradouro}, ${data.numero}${data.complemento ? ' - ' + data.complemento : ''}`,
-        neighborhood: data.bairro || '',
-        city: data.municipio || '',
-        state: data.uf || '',
-        zip_code: data.cep || ''
+        ...data
       }));
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setSearchingCnpj(false);
+    } catch (err) {
+      if (err instanceof Error) alert(err.message);
     }
   };
 
@@ -109,41 +47,10 @@ export default function SuperCondos() {
   };
 
   const handleSaveCondo = async () => {
-    if (!formData.cnpj || !formData.corporate_name) return alert('CNPJ e Razão Social são obrigatórios.');
-    
-    setSubmitting(true);
-    let uploadedLogoUrl = null;
-
     try {
-      if (logoFile) {
-        const fileExt = logoFile.name.split('.').pop();
-        const fileName = `${formData.cnpj.replace(/\D/g, '')}-${Date.now()}.${fileExt}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('condos')
-          .upload(fileName, logoFile);
-          
-        if (uploadError) throw uploadError;
-        
-        // Get public URL
-        const { data: publicUrlData } = supabase.storage.from('condos').getPublicUrl(fileName);
-        uploadedLogoUrl = publicUrlData.publicUrl;
-      }
-
-      const { error: insertError } = await supabase.from('condos').insert([{
-        cnpj: formData.cnpj.replace(/\D/g, ''),
-        corporate_name: formData.corporate_name,
-        trade_name: formData.trade_name,
-        address: formData.address,
-        neighborhood: formData.neighborhood,
-        city: formData.city,
-        state: formData.state,
-        zip_code: formData.zip_code.replace(/\D/g, ''),
-        logo_url: uploadedLogoUrl,
-        manager_id: formData.manager_id || null
-      }]);
-
-      if (insertError) throw insertError;
-
+      await createCondo(formData, logoFile);
+      
+      // Cleanup UI
       setIsModalOpen(false);
       setFormData({
         cnpj: '', corporate_name: '', trade_name: '',
@@ -152,12 +59,8 @@ export default function SuperCondos() {
       });
       setLogoFile(null);
       setLogoPreview(null);
-      fetchData();
-      
-    } catch (err: any) {
-      alert('Erro ao salvar condomínio: ' + err.message);
-    } finally {
-      setSubmitting(false);
+    } catch (err) {
+      if (err instanceof Error) alert('Erro ao salvar condomínio: ' + err.message);
     }
   };
 

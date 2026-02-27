@@ -45,8 +45,12 @@ export default function SuperLogin() {
       }
 
       navigate('/super', { replace: true });
-    } catch (err: any) {
-      setError(err.message || 'Erro ao realizar login.');
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message || 'Erro ao realizar login.');
+      } else {
+        setError('Erro ao realizar login.');
+      }
     } finally {
       setLoading(false);
     }

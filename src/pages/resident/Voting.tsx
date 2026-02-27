@@ -23,7 +23,7 @@ export default function Voting() {
         .select('unit_number, block_number, full_name')
         .eq('id', user.id)
         .single()
-        .then(({ data }) => setProfile(data as any));
+        .then(({ data }) => setProfile(data as { unit_number?: string, block_number?: string, full_name?: string } | null));
     }
   }, [user]);
 

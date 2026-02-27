@@ -15,7 +15,7 @@ export default function AdminOverview() {
 
   const [chartData, setChartData] = useState<{name: string, value: number, color: string}[]>([]);
   const [featuredTopic, setFeaturedTopic] = useState<{title: string} | null>(null);
-  const [recentUsers, setRecentUsers] = useState<any[]>([]);
+  const [recentUsers, setRecentUsers] = useState<{ id: string, full_name: string | null }[]>([]);
 
   useEffect(() => {
     fetchDashboardData();
