@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Users, Building, CheckCircle, PieChart, TrendingUp, Loader2 } from 'lucide-react';
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { supabase } from '../../lib/supabase';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function AdminOverview() {
   const [loading, setLoading] = useState(true);
@@ -101,6 +103,26 @@ export default function AdminOverview() {
     return `Há ${Math.floor(hours/24)} dias`;
   };
 
+  const handleExportPDF = async () => {
+    const element = document.getElementById('dashboard-report');
+    if (!element) return;
+    
+    try {
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save('relatorio-assembleia.pdf');
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      alert('Houve um erro ao gerar o relatório.');
+    }
+  };
+
   const stats = [
     { label: 'Participantes', value: statsData.participants.toString(), icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
     { label: 'Unidades Presentes', value: statsData.unitsPresent.toString(), icon: Building, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
@@ -117,13 +139,13 @@ export default function AdminOverview() {
   }
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8 max-w-6xl mx-auto" id="dashboard-report">
+      <div className="flex items-center justify-between" data-html2canvas-ignore="true">
         <div>
           <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Visão Geral</h2>
           <p className="text-slate-500 dark:text-slate-400 mt-1">Assembleia Geral Extraordinária - Em Tempo Real</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+        <button onClick={handleExportPDF} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
           <TrendingUp size={16} />
           Exportar Relatório
         </button>
