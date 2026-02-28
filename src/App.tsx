@@ -30,11 +30,14 @@ import SuperDashboard from './pages/superadmin/SuperDashboard';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 
+import ReloadPrompt from './components/ReloadPrompt';
+
 export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <ThemeToggle />
+        <ReloadPrompt />
         <BrowserRouter>
         <Routes>
           {/* Rotas Públicas */}
