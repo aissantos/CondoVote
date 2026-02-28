@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Search, Filter, Mail, Building, AlertTriangle, ShieldCheck, UserX, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 type Profile = {
   id: string;
@@ -12,21 +13,26 @@ type Profile = {
 };
 
 export default function AdminUsers() {
+  const { profile } = useAuth();
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'ALL' | 'INCOMPLETE'>('ALL');
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (profile?.condo_id) {
+      fetchUsers();
+    }
+  }, [profile?.condo_id]);
 
   const fetchUsers = async () => {
+    if (!profile?.condo_id) return;
     setLoading(true);
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('role', 'RESIDENT')
+      .eq('condo_id', profile.condo_id)
       .order('created_at', { ascending: false });
 
     if (!error && data) {

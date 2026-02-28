@@ -1,33 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { Server, Activity, Users, Database, Cpu, WifiHigh, CheckCircle2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { supabase } from '../../lib/supabase';
 
-// Componente visual do gráfico de Tráfego de Rede mockado
+// Componente visual do gráfico baseado em interações (Votos) nos últimos dias
 const NetworkChart = () => {
-  const [data, setData] = useState<{ time: number; reqs: number }[]>([]);
+  const [data, setData] = useState<{ time: string; reqs: number }[]>([]);
 
   useEffect(() => {
-    // Gerar dados randomicos iniciais
-    const initialData = Array.from({ length: 20 }, (_, i) => ({
-      time: i,
-      reqs: Math.floor(Math.random() * 50) + 150,
-    }));
-    setData(initialData);
-
-    // Update com nova simulação a cada segundo
-    const interval = setInterval(() => {
-      setData(prev => {
-        const newData = [...prev.slice(1)];
-        newData.push({
-          time: prev[prev.length - 1].time + 1,
-          reqs: Math.floor(Math.random() * 50) + 150,
-        });
-        return newData;
-      });
-    }, 2000);
-
-    return () => clearInterval(interval);
+    fetchVotingActivity();
   }, []);
+
+  const fetchVotingActivity = async () => {
+    // Busca votos para simular tráfego
+    const { data: votes } = await supabase
+      .from('votes')
+      .select('created_at')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (!votes || votes.length === 0) {
+      setData([{ time: 'Agora', reqs: 0 }]);
+      return;
+    }
+
+    // Agrupa (simples) para gerar algumas barras
+    const grouped = new Map<string, number>();
+    votes.forEach(v => {
+      const d = new Date(v.created_at);
+      const label = `${d.getHours()}h`; // agrupado por hora
+      grouped.set(label, (grouped.get(label) || 0) + 1);
+    });
+
+    const chartData = Array.from(grouped.entries())
+      .map(([time, reqs]) => ({ time, reqs }))
+      .reverse(); // cronológico
+      
+    setData(chartData.length > 0 ? chartData : [{ time: 'Agora', reqs: 0 }]);
+  };
+
+
 
   return (
     <div className="h-64 w-full mt-4">
@@ -57,6 +69,30 @@ const NetworkChart = () => {
 export default function SuperOverview() {
   const [uptime] = useState('99.99%');
   const [activeNodes] = useState(1);
+  const [totalCondos, setTotalCondos] = useState(0);
+  const [totalResidents, setTotalResidents] = useState(0);
+
+  useEffect(() => {
+    fetchMetrics();
+    
+    // Setup simple listener
+    const changesSub = supabase.channel('super-metrics-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'condos' }, fetchMetrics)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchMetrics)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(changesSub);
+    };
+  }, []);
+
+  const fetchMetrics = async () => {
+    const { count: condoCount } = await supabase.from('condos').select('*', { count: 'exact', head: true });
+    const { count: resCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'RESIDENT');
+    
+    setTotalCondos(condoCount || 0);
+    setTotalResidents(resCount || 0);
+  };
   
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -156,9 +192,9 @@ export default function SuperOverview() {
             <div>
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <WifiHigh className="text-red-500" size={20} />
-                Tráfego HTTP/WS Global
+                Atividade de Votações (Ao Vivo)
               </h3>
-              <p className="text-sm text-slate-400 mt-1">Média de Requests/Minutos ao vivo (Mock)</p>
+              <p className="text-sm text-slate-400 mt-1">Histograma de picos de votos registrados</p>
             </div>
             <span className="px-3 py-1 bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-bold rounded-lg animate-pulse">
               LIVE
@@ -178,8 +214,8 @@ export default function SuperOverview() {
           <div className="space-y-6 flex-1">
             <div className="flex flex-col gap-2">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-300 font-medium">Condomínios (Síndicos)</span>
-                <span className="text-indigo-400 font-bold">1 Registrados</span>
+                <span className="text-slate-300 font-medium">Condomínios (Instâncias)</span>
+                <span className="text-indigo-400 font-bold">{totalCondos} Registrados</span>
               </div>
               <div className="w-full bg-slate-700 rounded-full h-2">
                 <div className="bg-indigo-500 h-2 rounded-full" style={{ width: '10%' }}></div>
@@ -188,8 +224,8 @@ export default function SuperOverview() {
 
             <div className="flex flex-col gap-2">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-300 font-medium">Moradores Cadastrados</span>
-                <span className="text-sky-400 font-bold">~1 Totais</span>
+                <span className="text-slate-300 font-medium">Moradores (Global)</span>
+                <span className="text-sky-400 font-bold">{totalResidents} Utilizadores</span>
               </div>
               <div className="w-full bg-slate-700 rounded-full h-2">
                 <div className="bg-sky-500 h-2 rounded-full" style={{ width: '5%' }}></div>
@@ -200,7 +236,7 @@ export default function SuperOverview() {
               <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Supabase Auth Quota</h4>
                 <div className="flex justify-between items-center">
-                  <span className="text-white font-mono text-sm">2 / 50.000 (MAU)</span>
+                  <span className="text-white font-mono text-sm">{totalResidents + totalCondos} / 50.000 (MAU)</span>
                   <span className="text-green-500 text-xs">Abaixo do Limite</span>
                 </div>
               </div>

@@ -101,6 +101,7 @@ export default function AdminOverview() {
         .from('profiles')
         .select('full_name, block_number, unit_number, created_at')
         .eq('role', 'RESIDENT')
+        .eq('condo_id', profile.condo_id)
         .order('created_at', { ascending: false })
         .limit(5);
       
@@ -178,7 +179,7 @@ export default function AdminOverview() {
       </div>
 
       {condoInfo?.invite_code && (
-        <div className="bg-gradient-to-r from-primary to-primary-hover p-1 rounded-2xl shadow-lg">
+        <div className="bg-linear-to-r from-primary to-primary-hover p-1 rounded-2xl shadow-lg">
           <div className="bg-white dark:bg-surface-dark rounded-xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 border border-primary/20">
             <div className="flex items-center gap-4">
               <div className="size-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">

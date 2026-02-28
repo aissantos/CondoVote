@@ -1,17 +1,40 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Building2, User, Building, DoorOpen, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Building2, User, Building, DoorOpen, CheckCircle2, Loader2 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 export default function CheckIn() {
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
+  const [condoName, setCondoName] = useState('Seu Condomínio');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleCheckIn = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (profile?.condo_id) {
+      supabase.from('condos').select('name').eq('id', profile.condo_id).single()
+        .then(({data}) => {
+          if (data) setCondoName(data.name);
+        });
+    }
+  }, [profile?.condo_id]);
+
+  const handleCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user?.id || !profile?.condo_id) return;
     
-    // Simulate checkin
-    setTimeout(() => {
+    setSubmitting(true);
+    const { error } = await supabase.from('checkins').insert([
+      { user_id: user.id, condo_id: profile.condo_id }
+    ]);
+    setSubmitting(false);
+
+    // Se der erro diferente de Violação de Chave Única (já fez checkin), avise.
+    if (error && error.code !== '23505') {
+      alert('Falha ao registrar check-in: ' + error.message);
+    } else {
       navigate('/topics');
-    }, 400);
+    }
   };
 
   return (
@@ -36,7 +59,7 @@ export default function CheckIn() {
           <h1 className="text-2xl font-bold leading-tight mb-2 text-slate-900 dark:text-white">
             Assembleia Geral Extraordinária
           </h1>
-          <p className="text-primary font-medium text-lg mb-2">Condomínio Solar</p>
+          <p className="text-primary font-medium text-lg mb-2">{condoName}</p>
           <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed max-w-xs mx-auto">
             Bem-vindo! Realize seu check-in para participar das votações e decisões importantes do dia.
           </p>
@@ -56,7 +79,7 @@ export default function CheckIn() {
                 id="name"
                 placeholder="Digite seu nome completo"
                 type="text"
-                defaultValue="Carlos Oliveira"
+                defaultValue={profile?.full_name || ''}
                 required
               />
             </div>
@@ -76,7 +99,7 @@ export default function CheckIn() {
                   id="block"
                   placeholder="Ex: Bloco A"
                   type="text"
-                  defaultValue="Bloco A"
+                  defaultValue={profile?.block_number || ''}
                   required
                 />
               </div>
@@ -94,7 +117,7 @@ export default function CheckIn() {
                   id="unit"
                   placeholder="Ex: 102"
                   type="text"
-                  defaultValue="102"
+                  defaultValue={profile?.unit_number || ''}
                   required
                 />
               </div>
@@ -133,9 +156,10 @@ export default function CheckIn() {
           <div className="pt-6 pb-2">
             <button
               type="submit"
-              className="w-full flex items-center justify-center bg-primary hover:bg-blue-600 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
+              disabled={submitting}
+              className="w-full flex items-center justify-center bg-primary hover:bg-blue-600 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-primary/20 transition-all active:scale-[0.98] disabled:opacity-75"
             >
-              <CheckCircle2 className="mr-2" size={20} />
+              {submitting ? <Loader2 className="mr-2 animate-spin" size={20} /> : <CheckCircle2 className="mr-2" size={20} />}
               Confirmar presença
             </button>
             <p className="text-xs text-center text-slate-500 dark:text-slate-400 mt-4">

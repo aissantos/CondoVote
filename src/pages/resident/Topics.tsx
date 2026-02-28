@@ -17,7 +17,7 @@ type Topic = {
 
 export default function Topics() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,6 +34,7 @@ export default function Topics() {
       .from('topics')
       .select('*')
       .neq('status', 'DRAFT')
+      .eq('condo_id', profile?.condo_id)
       .order('created_at', { ascending: false });
 
     if (topicsError || !topicsData) {
