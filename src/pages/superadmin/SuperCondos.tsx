@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Search, Plus, MapPin, Loader2, ImagePlus, UserCircle, X } from 'lucide-react';
+import { Building2, Search, Plus, MapPin, Loader2, ImagePlus, UserCircle, X, Ticket, Copy, Check } from 'lucide-react';
 import { useCondos } from '../../hooks/useCondos';
 
 export default function SuperCondos() {
@@ -9,6 +9,7 @@ export default function SuperCondos() {
   } = useCondos();
   
   const [search, setSearch] = useState('');
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
   
   // Modal state para formulário GUI UI View
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,6 +46,13 @@ export default function SuperCondos() {
       setLogoPreview(url);
     }
   };
+
+  const handleCopyCode = (code: string | null) => {
+    if(!code) return;
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2000);
+  }
 
   const handleSaveCondo = async () => {
     try {
@@ -114,6 +122,7 @@ export default function SuperCondos() {
                   <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Condomínio / CNPJ</th>
                   <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Localização</th>
                   <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Síndico Responsável</th>
+                  <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Código de Convite</th>
                   <th className="p-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Ações</th>
                 </tr>
               </thead>
@@ -147,13 +156,21 @@ export default function SuperCondos() {
                         </div>
                       </td>
                       <td className="p-4">
-                        {condo.manager ? (
-                          <div className="flex items-center gap-2 text-sm text-yellow-500 font-medium">
-                            <UserCircle size={16} />
-                            {condo.manager.full_name}
+                        {condo.invite_code ? (
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-1 bg-green-500/10 border border-green-500/20 text-green-500 rounded-lg text-xs font-mono font-bold tracking-wider">
+                              {condo.invite_code}
+                            </span>
+                            <button
+                              onClick={() => handleCopyCode(condo.invite_code)}
+                              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-md transition-colors"
+                              title="Copiar código de convite"
+                            >
+                              {copiedCode === condo.invite_code ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                            </button>
                           </div>
                         ) : (
-                          <span className="text-sm text-slate-500 italic">Não Atribuído</span>
+                          <span className="text-xs text-slate-500 italic">Antigo (S/N)</span>
                         )}
                       </td>
                       <td className="p-4 text-right">

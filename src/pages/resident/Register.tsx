@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, UserPlus } from 'lucide-react';
+import { Building2, UserPlus, Ticket, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 export default function ResidentRegister() {
@@ -10,7 +10,8 @@ export default function ResidentRegister() {
     email: '',
     senha: '',
     unidade: '',
-    bloco: ''
+    bloco: '',
+    inviteCode: '' // NOVO: Hash
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,24 +21,46 @@ export default function ResidentRegister() {
     setLoading(true);
     setError(null);
     
-    // Cadastra o usuário e insere metadata q vai preencher a profile
-    const { error } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.senha,
-      options: {
-        data: {
-          full_name: formData.nome,
-          role: 'RESIDENT',
-        }
+    try {
+      if (!formData.inviteCode || formData.inviteCode.trim().length !== 6) {
+        throw new Error('Você precisa de um Código de Convite válido (6 dígitos) para se cadastrar num condomínio.');
       }
-    });
 
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else {
-      // Idealmente, pediríamos pra confirmar e-mail. Vamos redirecionar por agora.
+      // Valida Convite anonimamente contra RPC de bypass de RLS
+      const { data: condoId, error: rpcError } = await supabase.rpc('get_condo_by_invite', { 
+        code: formData.inviteCode.trim().toUpperCase() 
+      });
+
+      if (rpcError || !condoId) {
+        throw new Error('Código de convite inválido ou expirado. Peça um novo convite ao seu síndico.');
+      }
+
+      // Cadastra o usuário e insere metadata q vai preencher a profile via Trigger
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.senha,
+        options: {
+          data: {
+            full_name: formData.nome,
+            role: 'RESIDENT',
+            condo_id: condoId // Novo Parâmetro repassado à trigger
+          }
+        }
+      });
+
+      if (signUpError) {
+        throw signUpError;
+      }
+
       navigate('/');
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Falha inesperada ao tentar realizar cadastro.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -94,8 +117,26 @@ export default function ResidentRegister() {
             </div>
           </div>
 
+          <div className="pt-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Código de Convite (Condomínio)</label>
+            <div className="relative">
+              <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 size-5" />
+              <input 
+                name="inviteCode" 
+                type="text" 
+                required 
+                maxLength={6}
+                onChange={handleChange}
+                className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-transparent text-slate-900 dark:text-white focus:ring-2 focus:ring-primary outline-none font-mono uppercase tracking-widest placeholder:tracking-normal" 
+                placeholder="Ex: XYZ123" 
+              />
+            </div>
+            <p className="text-xs text-slate-500 mt-2">Peça ao Síndico o código do seu condomínio para se cadastrar.</p>
+          </div>
+
           <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white py-2.5 rounded-lg font-medium transition-colors mt-6">
-            {loading ? 'Criando Conta...' : <><UserPlus size={18} /> Cadastrar</>}
+            {loading ? <Loader2 className="animate-spin size-5" /> : <UserPlus size={18} />} 
+            {loading ? 'Validando e Criando...' : 'Cadastrar e Entrar'}
           </button>
         </form>
 

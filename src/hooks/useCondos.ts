@@ -16,6 +16,7 @@ export type Condo = {
   state: string;
   logo_url: string | null;
   manager_id: string | null;
+  invite_code: string | null;
   manager?: Profile | null;
 };
 
@@ -111,6 +112,18 @@ export function useCondos() {
         uploadedLogoUrl = publicUrlData.publicUrl;
       }
 
+      // Gera um invite code de 6 caracteres seguro (letras maiúsculas e números)
+      const generateInviteCode = () => {
+        const charset = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sem I, O, 1 e 0 para evitar confusões
+        let code = "";
+        for (let i = 0; i < 6; i++) {
+          code += charset.charAt(Math.floor(Math.random() * charset.length));
+        }
+        return code;
+      };
+
+      const newInviteCode = generateInviteCode();
+
       // 2. Database Insert
       const { error: insertError } = await supabase.from('condos').insert([{
         cnpj: formData.cnpj.replace(/\D/g, ''),
@@ -122,7 +135,8 @@ export function useCondos() {
         state: formData.state,
         zip_code: formData.zip_code.replace(/\D/g, ''),
         logo_url: uploadedLogoUrl,
-        manager_id: formData.manager_id || null
+        manager_id: formData.manager_id || null,
+        invite_code: newInviteCode
       }]);
 
       if (insertError) throw insertError;
