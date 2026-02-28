@@ -31,12 +31,14 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 
 import ReloadPrompt from './components/ReloadPrompt';
+import InstallPrompt from './components/InstallPrompt';
 
 export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <ThemeToggle />
+        <InstallPrompt />
         <ReloadPrompt />
         <BrowserRouter>
         <Routes>
