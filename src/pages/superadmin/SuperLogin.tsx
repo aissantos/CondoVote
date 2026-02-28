@@ -104,6 +104,10 @@ export default function SuperLogin() {
             {loading ? <Loader2 className="animate-spin size-5" /> : 'Acessar Console'}
           </button>
         </form>
+
+        <p className="text-center text-xs text-slate-500 mt-8 pt-6 border-t border-slate-700/50">
+          Feito por Versix Solutions.
+        </p>
       </div>
     </div>
   );

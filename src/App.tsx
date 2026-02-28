@@ -26,6 +26,10 @@ import AdminDashboard from './pages/admin/Dashboard';
 import SuperLogin from './pages/superadmin/SuperLogin';
 import SuperDashboard from './pages/superadmin/SuperDashboard';
 
+// Auth (Globais)
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
+
 export default function App() {
   return (
     <ThemeProvider>
@@ -38,6 +42,9 @@ export default function App() {
           <Route path="/register" element={<ResidentRegister />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/super/login" element={<SuperLogin />} />
+          
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Rotas Protegidas - Morador */}
           <Route path="/complete-profile" element={

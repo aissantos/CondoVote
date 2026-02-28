@@ -100,7 +100,14 @@ export default function ResidentRegister() {
         </form>
 
         <p className="text-center text-sm text-slate-600 dark:text-slate-400">
-          Já possui conta? <button onClick={() => navigate('/')} className="text-primary hover:underline font-medium">Voltar para o Login</button>
+          Já tem uma conta?{' '}
+          <button onClick={() => navigate('/')} className="text-primary hover:underline font-medium">
+            Acesse aqui
+          </button>
+        </p>
+
+        <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-8 pt-6 border-t border-slate-100 dark:border-slate-800/50">
+          Feito por Versix Solutions.
         </p>
       </div>
     </div>

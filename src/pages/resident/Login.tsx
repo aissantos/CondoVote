@@ -68,7 +68,16 @@ export default function ResidentLogin() {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Senha</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Senha</label>
+              <button 
+                type="button"
+                onClick={() => navigate('/forgot-password')} 
+                className="text-xs text-primary hover:text-primary-hover font-medium hover:underline"
+              >
+                Esqueceu a senha?
+              </button>
+            </div>
             <input
               type="password"
               required
@@ -121,6 +130,10 @@ export default function ResidentLogin() {
           <button onClick={() => navigate('/register')} className="text-primary hover:underline font-medium">
             Cadastre-se
           </button>
+        </p>
+
+        <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-6 pt-6 border-t border-slate-100 dark:border-slate-800/50">
+          Feito por Versix Solutions.
         </p>
         
         <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">

@@ -73,6 +73,10 @@ export default function AdminLogin() {
         <p className="text-center text-sm">
           <button onClick={() => navigate('/')} className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-medium">Voltar para visão do Morador</button>
         </p>
+
+        <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-6 pt-6 border-t border-slate-100 dark:border-slate-700/50">
+          Feito por Versix Solutions.
+        </p>
       </div>
     </div>
   );
