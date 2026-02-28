@@ -6,6 +6,7 @@ interface ProfileData {
   full_name?: string;
   unit_number?: string;
   block_number?: string;
+  condo_id?: string;
 }
 
 interface AuthContextType {
@@ -76,7 +77,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile({
           full_name: data.full_name,
           unit_number: data.unit_number,
-          block_number: data.block_number
+          block_number: data.block_number,
+          condo_id: data.condo_id
         });
       }
     } catch (e) {

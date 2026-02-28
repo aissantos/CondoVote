@@ -12,7 +12,7 @@ type Topic = {
 };
 
 export default function AdminTopics() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -76,7 +76,8 @@ export default function AdminTopics() {
           title: formData.title,
           description: formData.description,
           status,
-          created_by: user?.id
+          created_by: user?.id,
+          condo_id: profile?.condo_id
         }
       ]);
 

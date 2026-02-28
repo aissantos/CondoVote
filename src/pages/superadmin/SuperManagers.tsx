@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, ShieldAlert, UserPlus, Search, Building, Loader2, Key } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, UserPlus, Search, Building, Loader2, Key, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+const tempSupabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY,
+  {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  }
+);
 
 type Profile = {
   id: string;
@@ -13,6 +22,11 @@ export default function SuperManagers() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchProfiles();
@@ -52,6 +66,34 @@ export default function SuperManagers() {
     }
   };
 
+  const handleCreateManager = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name || !formData.email || formData.password.length < 6) return alert('Preencha nome, email e uma senha de 6 dígitos.');
+    setSubmitting(true);
+    
+    // Cria o usuário pelo cliente anônimo temporário sem deslogar o Root
+    const { error } = await tempSupabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        data: {
+          full_name: formData.name,
+          role: 'ADMIN' // Força ser Administrador
+        }
+      }
+    });
+
+    setSubmitting(false);
+    
+    if (error) {
+      alert('Falha ao criar Gerente: ' + error.message);
+    } else {
+      setIsModalOpen(false);
+      setFormData({ name: '', email: '', password: '' });
+      fetchProfiles();
+    }
+  };
+
   const filtered = profiles.filter(p => 
     (p.full_name?.toLowerCase().includes(search.toLowerCase()) || '') ||
     (p.id.includes(search))
@@ -79,7 +121,7 @@ export default function SuperManagers() {
               className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 text-white placeholder-slate-500"
             />
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-bold transition-colors">
+          <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-bold transition-colors">
             <UserPlus size={18} />
             Novo Registro Manual
           </button>
@@ -158,6 +200,64 @@ export default function SuperManagers() {
           </table>
         )}
       </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl border border-slate-700 overflow-hidden">
+            <div className="p-6 border-b border-slate-700 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <UserPlus className="text-red-500" size={24} />
+                Aprovisionar Síndico
+              </h3>
+              <button disabled={submitting} onClick={() => setIsModalOpen(false)} className="text-slate-500 hover:text-white transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            <form onSubmit={handleCreateManager} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Nome Completo</label>
+                <input 
+                  type="text" required
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="w-full rounded-xl border border-slate-600 bg-slate-900/50 text-white focus:border-red-500 focus:ring-red-500 px-4 py-2 outline-none" 
+                  placeholder="Nome do Síndico..." 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">E-mail Profissional</label>
+                <input 
+                  type="email" required
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  className="w-full rounded-xl border border-slate-600 bg-slate-900/50 text-white focus:border-red-500 focus:ring-red-500 px-4 py-2 outline-none" 
+                  placeholder="contato@sindico.com.br" 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Senha Inicial</label>
+                <input 
+                  type="password" required minLength={6}
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  className="w-full rounded-xl border border-slate-600 bg-slate-900/50 text-white focus:border-red-500 focus:ring-red-500 px-4 py-2 outline-none" 
+                  placeholder="••••••••" 
+                />
+                <p className="text-xs text-slate-500 mt-2">Você deve entregar esta senha pessoalmente para ele acessar o Painel de Controle e alterar a posteriori.</p>
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button type="button" disabled={submitting} onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700 rounded-xl transition-colors">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={submitting} className="flex-1 flex justify-center items-center px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-500 rounded-xl transition-colors">
+                  {submitting ? <Loader2 className="animate-spin size-5" /> : 'Criar Administrador'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

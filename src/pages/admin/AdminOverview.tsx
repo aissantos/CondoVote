@@ -4,8 +4,11 @@ import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip, 
 import { supabase } from '../../lib/supabase';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+import { useAuth } from '../../contexts/AuthContext';
+import { Copy, Check, Ticket } from 'lucide-react';
 
 export default function AdminOverview() {
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [statsData, setStatsData] = useState({
     participants: 0,
@@ -16,9 +19,15 @@ export default function AdminOverview() {
   const [chartData, setChartData] = useState<{name: string, value: number, color: string}[]>([]);
   const [featuredTopic, setFeaturedTopic] = useState<{title: string} | null>(null);
   const [recentUsers, setRecentUsers] = useState<{ id: string, full_name: string | null }[]>([]);
+  
+  // Condomínio
+  const [condoInfo, setCondoInfo] = useState<{ name: string, invite_code: string | null } | null>(null);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchDashboardData();
+    if (profile?.condo_id) {
+      fetchDashboardData();
+    }
     
     // Set up realtime subscriptions (funcional se ativado no painel do Supabase)
     const profilesSub = supabase.channel('profiles-changes')
@@ -42,9 +51,19 @@ export default function AdminOverview() {
 
   const fetchDashboardData = async () => {
     try {
+      if (!profile?.condo_id) return;
+
+      // Fetch Condo
+      const { data: condo } = await supabase
+        .from('condos')
+        .select('name, invite_code')
+        .eq('id', profile.condo_id)
+        .single();
+      if (condo) setCondoInfo(condo);
+
       // Fetch stats
-      const { count: participantsCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'RESIDENT');
-      const { count: activePollsCount } = await supabase.from('topics').select('*', { count: 'exact', head: true }).eq('status', 'OPEN');
+      const { count: participantsCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'RESIDENT').eq('condo_id', profile.condo_id);
+      const { count: activePollsCount } = await supabase.from('topics').select('*', { count: 'exact', head: true }).eq('status', 'OPEN').eq('condo_id', profile.condo_id);
       
       setStatsData({
         participants: participantsCount || 0,
@@ -123,6 +142,13 @@ export default function AdminOverview() {
     }
   };
 
+  const handleCopyCode = (code: string | null) => {
+    if(!code) return;
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
   const stats = [
     { label: 'Participantes', value: statsData.participants.toString(), icon: Users, color: 'text-blue-500', bg: 'bg-blue-500/10' },
     { label: 'Unidades Presentes', value: statsData.unitsPresent.toString(), icon: Building, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
@@ -150,6 +176,35 @@ export default function AdminOverview() {
           Exportar Relatório
         </button>
       </div>
+
+      {condoInfo?.invite_code && (
+        <div className="bg-gradient-to-r from-primary to-primary-hover p-1 rounded-2xl shadow-lg">
+          <div className="bg-white dark:bg-surface-dark rounded-xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 border border-primary/20">
+            <div className="flex items-center gap-4">
+              <div className="size-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Ticket className="text-primary size-7" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Código do seu Condomínio</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Compartilhe isso no grupo de WhatsApp para que os moradores possam se cadastrar no {condoInfo.name}.</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <span className="px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl text-3xl font-mono font-bold tracking-widest border border-slate-200 dark:border-slate-700">
+                {condoInfo.invite_code}
+              </span>
+              <button
+                onClick={() => handleCopyCode(condoInfo.invite_code)}
+                className="p-3 bg-primary text-white hover:bg-primary-hover rounded-xl shadow-md transition-colors"
+                title="Copiar código de convite"
+              >
+                {copiedCode === condoInfo.invite_code ? <Check size={24} /> : <Copy size={24} />}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat) => {
