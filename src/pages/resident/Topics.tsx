@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, Clock, Loader2 } from 'lucide-react';
-import BottomNav from '../../components/BottomNav';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -20,6 +19,7 @@ export default function Topics() {
   const { user, profile } = useAuth();
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'ALL' | 'UNVOTED'>('ALL');
 
   useEffect(() => {
     fetchTopics();
@@ -59,42 +59,66 @@ export default function Topics() {
     setLoading(false);
   };
 
+  const filteredTopics = topics.filter(topic => {
+    if (filter === 'UNVOTED') {
+      return !topic.user_voted;
+    }
+    return true;
+  });
+
   return (
-    <div className="flex-1 flex flex-col min-h-screen bg-background-light dark:bg-background-dark max-w-md mx-auto shadow-2xl relative overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-surface-dark border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
+    <div className="flex-1 flex flex-col min-h-screen bg-background-dark max-w-md mx-auto relative overflow-hidden">
+      {/* Header Fixo Escuro */}
+      <div className="flex items-center justify-between px-4 py-4 bg-background-dark/80 backdrop-blur-md border-b border-surface-border sticky top-0 z-10">
         <button
-          onClick={() => navigate('/')}
-          className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-white transition-colors"
+          onClick={() => navigate('/resident/home')}
+          className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-surface-dark text-white transition-colors"
         >
           <ArrowLeft size={24} />
         </button>
-        <h2 className="text-lg font-bold leading-tight flex-1 text-center pr-8 text-slate-900 dark:text-white">
+        <h2 className="text-lg font-bold leading-tight flex-1 text-center pr-8 text-white">
           Pautas em Votação
         </h2>
         <div className="w-8"></div>
       </div>
 
-      <div className="px-4 py-4 overflow-x-auto no-scrollbar bg-background-light dark:bg-background-dark">
-        <div className="flex gap-2">
-          <button className="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary px-4 shadow-sm">
-            <p className="text-white text-xs font-medium leading-normal">Todas</p>
+      {/* Filtros Toggle */}
+      <div className="px-4 py-4 overflow-x-auto no-scrollbar bg-background-dark border-b border-surface-border/50">
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setFilter('ALL')}
+            className={`flex h-9 shrink-0 items-center justify-center rounded-full px-5 transition-colors ${
+              filter === 'ALL' 
+                ? 'bg-primary text-white shadow-md shadow-primary/20' 
+                : 'bg-surface-dark text-slate-400 hover:text-white border border-surface-border'
+            }`}
+          >
+            <p className="text-sm font-bold leading-normal tracking-wide">Todas</p>
           </button>
-          <button className="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-slate-200 dark:bg-slate-800 px-4">
-            <p className="text-slate-600 dark:text-slate-300 text-xs font-medium leading-normal">Não Votadas</p>
+          <button 
+             onClick={() => setFilter('UNVOTED')}
+             className={`flex h-9 shrink-0 items-center justify-center rounded-full px-5 transition-colors ${
+              filter === 'UNVOTED' 
+                ? 'bg-primary text-white shadow-md shadow-primary/20' 
+                : 'bg-surface-dark text-slate-400 hover:text-white border border-surface-border'
+            }`}
+          >
+            <p className="text-sm font-medium leading-normal tracking-wide">Não Votadas</p>
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 pb-24">
+      {/* Listagem de Pautas */}
+      <div className="flex-1 overflow-y-auto px-4 pb-12 pt-4">
         {loading ? (
           <div className="flex items-center justify-center pt-10">
             <Loader2 className="animate-spin text-primary size-8" />
           </div>
-        ) : topics.length === 0 ? (
-           <p className="text-center text-sm text-slate-500 mt-10">Nenhuma pauta disponível no momento.</p>
+        ) : filteredTopics.length === 0 ? (
+           <p className="text-center text-sm text-surface-border font-medium mt-10">Nenhuma pauta disponível no momento.</p>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {topics.map((topic) => (
+          <div className="flex flex-col gap-3 pb-8">
+            {filteredTopics.map((topic) => (
               <div
                 key={topic.id}
                 onClick={() => {
@@ -102,36 +126,45 @@ export default function Topics() {
                     navigate(`/voting`, { state: { topic } });
                   }
                 }}
-                className={`flex flex-col rounded-lg bg-white dark:bg-surface-dark p-3 shadow-sm border relative transition-transform ${
+                className={`flex flex-col rounded-xl p-4 shadow-sm relative transition-all group ${
                   (topic.status === 'OPEN' && !topic.user_voted) 
-                    ? 'border-slate-200 dark:border-slate-800 cursor-pointer hover:border-primary active:scale-95' 
-                    : 'border-transparent opacity-70 cursor-not-allowed'
+                    ? 'bg-surface-dark border-surface-border border cursor-pointer hover:border-primary/50 active:scale-[0.98]' 
+                    : 'bg-background-dark border-surface-border/50 border opacity-60 cursor-not-allowed'
                 }`}
               >
-                <div className="mb-1">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${topic.status === 'OPEN' ? 'text-primary' : 'text-slate-500'}`}>
+                <div className="mb-2">
+                  <span className={`text-[10px] font-bold uppercase tracking-widest ${
+                    topic.status === 'OPEN' && !topic.user_voted ? 'text-green-400' 
+                    : topic.user_voted ? 'text-slate-400'
+                    : 'text-slate-500'
+                  }`}>
                     {topic.status === 'OPEN' ? 'Ativa' : 'Encerrada'}
                   </span>
                 </div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight mb-auto mt-1">
+                <h3 className="text-base font-bold text-white leading-tight mb-2">
                   {topic.title}
                 </h3>
-                <div className="mt-4 flex items-center justify-between">
+                <p className="text-text-secondary text-base font-medium line-clamp-1 mb-4 opacity-70">
+                   {topic.description}
+                </p>
+                <div className="mt-auto flex items-center justify-between pt-3 border-t border-surface-border/50">
                   {topic.user_voted ? (
-                    <div className="flex items-center gap-1 text-green-500">
-                      <CheckCircle2 size={14} className="fill-current text-white" />
-                      <span className="text-[10px] font-bold uppercase">Votado</span>
+                    <div className="flex items-center gap-1.5 text-primary">
+                      <CheckCircle2 size={16} />
+                      <span className="text-[11px] font-bold uppercase tracking-wider">Voto Computado</span>
                     </div>
                   ) : topic.status === 'OPEN' ? (
                     <>
-                      <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
-                        <Clock size={14} />
-                        <span className="text-[10px] font-medium">Livre</span>
+                      <div className="flex items-center gap-1.5 text-text-secondary">
+                        <Clock size={16} />
+                        <span className="text-[11px] font-medium tracking-wider">Livre para votar</span>
                       </div>
-                      <span className="text-[10px] font-bold text-primary">Votar</span>
+                      <span className="text-[11px] font-bold text-white group-hover:text-primary transition-colors bg-white/5 px-3 py-1 rounded-full uppercase tracking-wider">
+                        Votar
+                      </span>
                     </>
                   ) : (
-                    <span className="text-[10px] font-bold text-slate-500">Encerrado</span>
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Fechada</span>
                   )}
                 </div>
               </div>
@@ -139,7 +172,6 @@ export default function Topics() {
           </div>
         )}
       </div>
-      <BottomNav />
     </div>
   );
 }

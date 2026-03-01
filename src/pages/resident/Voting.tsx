@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, ThumbsUp, ThumbsDown, MinusCircle, BadgeInfo, Timer, Loader2 } from 'lucide-react';
-import BottomNav from '../../components/BottomNav';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -240,7 +239,6 @@ export default function Voting() {
           </div>
         </div>
       </main>
-      <BottomNav />
     </div>
   );
 }

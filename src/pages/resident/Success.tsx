@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check, ShieldCheck, Share2 } from 'lucide-react';
-import BottomNav from '../../components/BottomNav';
 
 export default function Success() {
   const navigate = useNavigate();
@@ -94,7 +93,6 @@ export default function Success() {
             </div>
           </div>
         </div>
-        <BottomNav />
       </div>
     </div>
   );
