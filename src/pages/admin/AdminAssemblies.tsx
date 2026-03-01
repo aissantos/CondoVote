@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Clock, CheckCircle2, Loader2, Lock, ArrowRight, FileText } from 'lucide-react';
+import { Plus, Edit2, Trash2, Clock, CheckCircle2, Loader2, Lock, ArrowRight, FileText, Image, FileWarning, Video } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -9,8 +9,13 @@ type Assembly = {
   title: string;
   description: string;
   assembly_date: string;
-  assembly_type: 'AGO' | 'AGE';
-  status: 'OPEN' | 'CLOSED' | 'DRAFT';
+  type: 'AGO' | 'AGE';
+  status: 'DRAFT' | 'OPEN' | 'CLOSED';
+  format?: 'PRESENCIAL' | 'REMOTO' | 'HIBRIDO';
+  first_call_time?: string;
+  second_call_time?: string;
+  cover_url?: string;
+  notice_url?: string;
   created_at: string;
 };
 
@@ -24,9 +29,14 @@ export default function AdminAssemblies() {
   // Form state
   const [formData, setFormData] = useState({ 
     title: '', 
-    description: '',
+    description: '', 
     assembly_date: new Date().toISOString().split('T')[0],
-    assembly_type: 'AGO' as 'AGO' | 'AGE'
+    type: 'AGO' as 'AGO' | 'AGE',
+    format: 'HIBRIDO' as 'PRESENCIAL' | 'REMOTO' | 'HIBRIDO',
+    first_call_time: '',
+    second_call_time: '',
+    coverFile: null as File | null,
+    noticeFile: null as File | null
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -55,7 +65,12 @@ export default function AdminAssemblies() {
       title: '', 
       description: '', 
       assembly_date: new Date().toISOString().split('T')[0],
-      assembly_type: 'AGO'
+      type: 'AGO',
+      format: 'HIBRIDO',
+      first_call_time: '',
+      second_call_time: '',
+      coverFile: null,
+      noticeFile: null
     });
     setIsModalOpen(true);
   };
@@ -66,53 +81,106 @@ export default function AdminAssemblies() {
       title: assembly.title, 
       description: assembly.description || '',
       assembly_date: assembly.assembly_date,
-      assembly_type: assembly.assembly_type
+      type: assembly.type,
+      format: assembly.format || 'HIBRIDO',
+      first_call_time: assembly.first_call_time || '',
+      second_call_time: assembly.second_call_time || '',
+      coverFile: null,
+      noticeFile: null
     });
     setIsModalOpen(true);
   };
 
+  const generateFileName = (originalName: string) => {
+    const timestamp = new Date().getTime();
+    const cleanName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_');
+    return `${profile?.condo_id}/${timestamp}_${cleanName}`;
+  };
+
   const handleSave = async (status: 'DRAFT' | 'OPEN') => {
-    if (!formData.title) return alert('Título é obrigatório');
     if (!formData.assembly_date) return alert('Data é obrigatória');
     setSubmitting(true);
     
-    if (editingId) {
-      const { error } = await supabase.from('assemblies').update({
-        title: formData.title,
-        description: formData.description,
-        assembly_date: formData.assembly_date,
-        assembly_type: formData.assembly_type,
-        status
-      }).eq('id', editingId);
+    try {
+        let cover_url = undefined;
+        let notice_url = undefined;
 
-      setSubmitting(false);
-      if (!error) {
+        // 1. Upload Cover Image se houver
+        if (formData.coverFile) {
+            const fileName = generateFileName(formData.coverFile.name);
+            const { error: coverUploadError } = await supabase.storage
+              .from('assembly_covers')
+              .upload(fileName, formData.coverFile);
+
+            if (!coverUploadError) {
+               const { data } = supabase.storage.from('assembly_covers').getPublicUrl(fileName);
+               cover_url = data.publicUrl;
+            } else {
+               console.error("Erro no upload da capa:", coverUploadError);
+            }
+        }
+
+        // 2. Upload Notice PDF se houver
+        if (formData.noticeFile) {
+            const fileName = generateFileName(formData.noticeFile.name);
+            const { error: noticeUploadError } = await supabase.storage
+              .from('assembly_documents')
+              .upload(fileName, formData.noticeFile);
+
+            if (!noticeUploadError) {
+               const { data } = supabase.storage.from('assembly_documents').getPublicUrl(fileName);
+               notice_url = data.publicUrl;
+            } else {
+               console.error("Erro no upload do edital:", noticeUploadError);
+            }
+        }
+
+        const fallbackTitle = `${formData.type} - ${new Date(formData.assembly_date + 'T12:00:00').toLocaleDateString()}`;
+
+        if (editingId) {
+          const payload: any = {
+            title: fallbackTitle,
+            description: formData.description,
+            assembly_date: formData.assembly_date,
+            type: formData.type,
+            format: formData.format,
+            first_call_time: formData.first_call_time || null,
+            second_call_time: formData.second_call_time || null,
+            status
+          };
+          
+          if (cover_url) payload.cover_url = cover_url;
+          if (notice_url) payload.notice_url = notice_url;
+
+          const { error } = await supabase.from('assemblies').update(payload).eq('id', editingId);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from('assemblies').insert([
+            {
+              title: fallbackTitle,
+              description: formData.description,
+              assembly_date: formData.assembly_date,
+              type: formData.type,
+              format: formData.format,
+              first_call_time: formData.first_call_time || null,
+              second_call_time: formData.second_call_time || null,
+              status,
+              created_by: user?.id,
+              condo_id: profile?.condo_id,
+              cover_url,
+              notice_url
+            }
+          ]);
+          if (error) throw error;
+        }
+
         setIsModalOpen(false);
         setEditingId(null);
         fetchAssemblies();
-      } else {
-        alert('Erro ao atualizar assembleia: ' + error.message);
-      }
-    } else {
-      const { error } = await supabase.from('assemblies').insert([
-        {
-          title: formData.title,
-          description: formData.description,
-          assembly_date: formData.assembly_date,
-          assembly_type: formData.assembly_type,
-          status,
-          created_by: user?.id,
-          condo_id: profile?.condo_id
-        }
-      ]);
-
-      setSubmitting(false);
-      if (!error) {
-        setIsModalOpen(false);
-        fetchAssemblies();
-      } else {
-        alert('Erro ao criar assembleia: ' + error.message);
-      }
+    } catch (err: any) {
+        alert('Erro ao salvar assembleia: ' + err.message);
+    } finally {
+        setSubmitting(false);
     }
   };
 
@@ -298,39 +366,68 @@ export default function AdminAssemblies() {
                 &times;
               </button>
             </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Título da Assembleia</label>
-                <input 
-                  type="text" 
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary h-10 px-3 outline-none" 
-                  placeholder="Ex: Assembleia Geral Ordinária 2026" 
-                />
-              </div>
-
+            <div className="p-6 space-y-5 overflow-y-auto max-h-[70vh]">
+              {/* Informações Básicas */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tipo</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tipo da Reunião</label>
                   <select
-                    value={formData.assembly_type}
-                    onChange={(e) => setFormData({...formData, assembly_type: e.target.value as 'AGO' | 'AGE'})}
-                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary h-10 px-3 outline-none appearance-none"
+                    value={formData.type}
+                    onChange={(e) => setFormData({...formData, type: e.target.value as 'AGO' | 'AGE'})}
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary h-11 px-3 outline-none appearance-none font-medium"
                   >
                     <option value="AGO">AGO (Ordinária)</option>
                     <option value="AGE">AGE (Extraordinária)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Data</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Data da Assembleia</label>
                   <input 
                     type="date" 
                     value={formData.assembly_date}
                     onChange={(e) => setFormData({...formData, assembly_date: e.target.value})}
-                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary h-10 px-3 outline-none" 
+                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary h-11 px-3 outline-none" 
                   />
                 </div>
+              </div>
+
+              {/* Informações de Local e Formato */}
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700 space-y-4">
+                 <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Formato</label>
+                    <div className="grid grid-cols-3 gap-2">
+                       {['PRESENCIAL', 'REMOTO', 'HIBRIDO'].map((fmt) => (
+                           <button
+                             key={fmt}
+                             onClick={() => setFormData({...formData, format: fmt as any})}
+                             className={`py-2 text-xs font-bold rounded-lg border transition-all ${formData.format === fmt ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-500/20 dark:border-indigo-500/30 dark:text-indigo-300' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'}`}
+                           >
+                             {fmt}
+                           </button>
+                       ))}
+                    </div>
+                 </div>
+
+                 <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">1ª Convocação <span className="text-slate-400 font-normal text-xs">(hh:mm)</span></label>
+                      <input 
+                        type="time" 
+                        value={formData.first_call_time}
+                        onChange={(e) => setFormData({...formData, first_call_time: e.target.value})}
+                        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary h-10 px-3 outline-none" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">2ª Convocação <span className="text-slate-400 font-normal text-xs">(Opcional)</span></label>
+                      <input 
+                        type="time" 
+                        value={formData.second_call_time}
+                        onChange={(e) => setFormData({...formData, second_call_time: e.target.value})}
+                        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary h-10 px-3 outline-none" 
+                      />
+                    </div>
+                 </div>
               </div>
 
               <div>
@@ -340,9 +437,47 @@ export default function AdminAssemblies() {
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
                   className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary p-3 outline-none" 
                   rows={2} 
-                  placeholder="Breve resumo..."
+                  placeholder="Resumo das pautas que serão deliberadas..."
                 ></textarea>
               </div>
+
+              {/* Arquivos */}
+              {!editingId && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5"><Image size={14}/> Imagem de Capa <span className="text-[10px] text-slate-400 font-normal">(PNG/JPG)</span></label>
+                    <div className="relative border border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-3 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800 group hover:border-indigo-400 transition-colors">
+                      <input 
+                          type="file" 
+                          accept="image/*"
+                          onChange={(e) => setFormData({...formData, coverFile: e.target.files?.[0] || null})}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                        />
+                        {formData.coverFile ? (
+                          <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 truncate w-full text-center px-2">{formData.coverFile.name}</span>
+                        ) : (
+                          <span className="text-xs text-slate-500 group-hover:text-indigo-500 font-medium">Anexar Imagem</span>
+                        )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5"><FileWarning size={14}/> Edital PDF <span className="text-[10px] text-slate-400 font-normal">(Max 5MB)</span></label>
+                    <div className="relative border border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-3 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800 group hover:border-indigo-400 transition-colors">
+                      <input 
+                          type="file" 
+                          accept=".pdf"
+                          onChange={(e) => setFormData({...formData, noticeFile: e.target.files?.[0] || null})}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                        />
+                        {formData.noticeFile ? (
+                          <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 truncate w-full text-center px-2">{formData.noticeFile.name}</span>
+                        ) : (
+                          <span className="text-xs text-slate-500 group-hover:text-indigo-500 font-medium">Anexar PDF</span>
+                        )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="p-6 border-t border-slate-200 dark:border-border-dark flex justify-end gap-3 bg-slate-50 dark:bg-[#1c2e3e]">
               <button disabled={submitting} onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors">

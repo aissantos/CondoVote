@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ListTodo, Activity, LogOut, Menu, X, Users } from 'lucide-react';
+import { LayoutDashboard, ListTodo, Activity, LogOut, Menu, X, Users, ChevronDown } from 'lucide-react';
 import AdminOverview from './AdminOverview';
 import AdminTopics from './AdminTopics';
 import AdminAssemblies from './AdminAssemblies';
@@ -12,12 +12,22 @@ export default function AdminDashboard() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isAssembliesOpen, setIsAssembliesOpen] = useState(true);
 
   const navItems = [
-    { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/admin/assemblies', icon: ListTodo, label: 'Assembleias' },
-    { path: '/admin/monitor', icon: Activity, label: 'Monitor' },
-    { path: '/admin/users', icon: Users, label: 'Moradores' },
+    { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' }
+  ];
+
+  const assemblySubItems = [
+    { path: '/admin/assemblies', label: 'Gerenciar Sessões' },
+    { path: '/admin/topics', label: 'Pautas' },
+    { path: '/admin/documents', label: 'Documentos e Atas' }
+  ];
+
+  const secondaryNavItems = [
+    { path: '/admin/monitor', icon: Activity, label: 'Monitor de Presença' },
+    { path: '/admin/users', icon: Users, label: 'Moradores Base' },
   ];
 
   const handleNavClick = () => {
@@ -56,25 +66,78 @@ export default function AdminDashboard() {
         </div>
 
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            const Icon = item.icon;
-            return (
-              <Link
+            {/* Home Dashboard Link */}
+            <NavLink
+              to="/admin"
+              end
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
+                  isActive
+                    ? 'bg-primary text-white shadow-lg shadow-primary/25 font-bold'
+                    : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 hover:text-slate-900'
+                }`
+              }
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <LayoutDashboard size={20} />
+              <span>Dashboard</span>
+            </NavLink>
+
+            {/* Hub de Assembleias Acordeão */}
+            <div className="flex flex-col mb-1 mt-1">
+              <button
+                onClick={() => setIsAssembliesOpen(!isAssembliesOpen)}
+                className="flex items-center justify-between px-4 py-3 rounded-xl transition-all font-medium text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 hover:text-slate-900"
+              >
+                  <div className="flex items-center gap-3">
+                     <ListTodo size={20} />
+                     <span>Assembleias</span>
+                  </div>
+                  <ChevronDown size={16} className={`transition-transform duration-200 ${isAssembliesOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              <div className={`flex flex-col ml-11 overflow-hidden transition-all duration-300 ${isAssembliesOpen ? 'max-h-48 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+                 <div className="border-l border-slate-200 dark:border-slate-800 flex flex-col gap-1 py-1">
+                    {assemblySubItems.map((item) => (
+                      <NavLink
+                        key={item.path}
+                        to={item.path}
+                        end
+                        className={({ isActive }) =>
+                          `px-4 py-2 text-sm rounded-r-lg transition-all border-l-2 -ml-[1px] ${
+                            isActive
+                              ? 'text-primary font-bold border-primary bg-primary/5 dark:bg-primary/10'
+                              : 'text-slate-500 hover:text-slate-900 border-transparent hover:border-slate-300 dark:text-slate-400 dark:hover:text-white dark:hover:border-slate-600'
+                          }`
+                        }
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        {item.label}
+                      </NavLink>
+                    ))}
+                 </div>
+              </div>
+            </div>
+
+            {/* Secundários */}
+            {secondaryNavItems.map((item) => (
+              <NavLink
                 key={item.path}
                 to={item.path}
-                onClick={handleNavClick}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                  isActive
-                    ? 'bg-primary text-white font-medium shadow-md shadow-primary/20'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
+                end
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
+                    isActive
+                      ? 'bg-primary text-white shadow-lg shadow-primary/25 font-bold'
+                      : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 hover:text-slate-900'
+                  }`
+                }
+                onClick={() => setIsMobileMenuOpen(false)}
               >
-                <Icon size={20} />
-                {item.label}
-              </Link>
-            );
-          })}
+                <item.icon size={20} />
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
         </nav>
 
         <div className="p-4 border-t border-slate-200 dark:border-border-dark">
