@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, ThumbsUp, ThumbsDown, MinusCircle, BadgeInfo, Timer, Loader2 } from 'lucide-react';
+import { ArrowLeft, ThumbsUp, ThumbsDown, MinusCircle, BadgeInfo, Timer, Loader2, Paperclip } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -71,15 +71,41 @@ export default function Voting() {
       </div>
 
       <main className="flex-1 flex flex-col px-4 pt-6 pb-24">
-        <div className="mb-8 text-center">
+        <div className="mb-8 text-center flex flex-col items-center">
           <div className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider mb-4">
             Em Andamento
           </div>
-          <h1 className="text-slate-900 dark:text-white text-3xl font-extrabold leading-tight mb-3">
+          <h1 className="text-slate-900 dark:text-white text-3xl font-extrabold leading-tight mb-5 w-full">
             {topic.title}
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-base font-normal leading-relaxed max-w-sm mx-auto">
-            Escolha apenas uma opção. Seu voto é definitivo, atrelado à sua unidade e não poderá ser alterado.
+
+          {(topic.description || topic.attachment_url) && (
+            <div className="text-left bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 w-full shadow-sm mb-6 relative overflow-hidden">
+               {/* Decorador Lateral */}
+               <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+               {topic.description && (
+                  <p className="text-slate-700 dark:text-slate-300 text-base font-medium leading-relaxed whitespace-pre-wrap break-words">
+                     {topic.description}
+                  </p>
+               )}
+               {topic.attachment_url && (
+                  <div className={`w-full mt-4 ${topic.description ? 'pt-4 border-t border-slate-100 dark:border-slate-700' : ''}`}>
+                     <a 
+                        href={topic.attachment_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="flex items-center justify-center gap-2 p-3.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold rounded-xl transition-all shadow-sm active:scale-[0.98]"
+                     >
+                        <Paperclip size={18} />
+                        Visualizar Anexo da Pauta
+                     </a>
+                  </div>
+               )}
+            </div>
+          )}
+
+          <p className="text-slate-500 dark:text-slate-400 text-sm font-normal leading-relaxed w-full">
+            Escolha apenas uma opção. Seu voto é definitivo e não poderá ser alterado.
           </p>
         </div>
 

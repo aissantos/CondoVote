@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Clock, CheckCircle2, Loader2, Lock, ArrowLeft } from 'lucide-react';
+import { Plus, Edit2, Trash2, Clock, CheckCircle2, Loader2, Lock, ArrowLeft, Paperclip } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -10,6 +10,7 @@ type Topic = {
   description: string;
   status: 'OPEN' | 'CLOSED' | 'DRAFT';
   assembly_id: string;
+  attachment_url?: string;
   created_at: string;
 };
 
@@ -25,7 +26,11 @@ export default function AdminTopics() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Form state
-  const [formData, setFormData] = useState({ title: '', description: '' });
+  const [formData, setFormData] = useState({ 
+    title: '', 
+    description: '',
+    attachmentFile: null as File | null
+  });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -52,54 +57,75 @@ export default function AdminTopics() {
 
   const handleOpenNewTopic = () => {
     setEditingId(null);
-    setFormData({ title: '', description: '' });
+    setFormData({ title: '', description: '', attachmentFile: null });
     setIsModalOpen(true);
   };
 
   const openEditModal = (topic: Topic) => {
     setEditingId(topic.id);
-    setFormData({ title: topic.title, description: topic.description });
+    setFormData({ title: topic.title, description: topic.description, attachmentFile: null });
     setIsModalOpen(true);
+  };
+
+  const generateFileName = (originalName: string) => {
+    const timestamp = new Date().getTime();
+    const cleanName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_');
+    return `${profile?.condo_id}/${timestamp}_${cleanName}`;
   };
 
   const handleSaveTopic = async (status: 'DRAFT' | 'OPEN') => {
     if (!formData.title) return alert('Título é obrigatório');
     setSubmitting(true);
     
-    if (editingId) {
-      const { error } = await supabase.from('topics').update({
-        title: formData.title,
-        description: formData.description,
-        status
-      }).eq('id', editingId);
+    try {
+        let attachment_url = undefined;
 
-      setSubmitting(false);
-      if (!error) {
+        if (formData.attachmentFile) {
+            const fileName = generateFileName(formData.attachmentFile.name);
+            const { error: uploadError } = await supabase.storage
+              .from('topic_attachments')
+              .upload(fileName, formData.attachmentFile);
+
+            if (!uploadError) {
+               const { data } = supabase.storage.from('topic_attachments').getPublicUrl(fileName);
+               attachment_url = data.publicUrl;
+            } else {
+               console.error("Erro no upload do anexo:", uploadError);
+            }
+        }
+
+        if (editingId) {
+          const payload: any = {
+            title: formData.title,
+            description: formData.description,
+            status
+          };
+          if (attachment_url) payload.attachment_url = attachment_url;
+
+          const { error } = await supabase.from('topics').update(payload).eq('id', editingId);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from('topics').insert([
+            {
+              title: formData.title,
+              description: formData.description,
+              status,
+              created_by: user?.id,
+              condo_id: profile?.condo_id,
+              assembly_id: assemblyId,
+              attachment_url
+            }
+          ]);
+          if (error) throw error;
+        }
+
         setIsModalOpen(false);
         setEditingId(null);
         fetchTopics();
-      } else {
-        alert('Erro ao atualizar pauta: ' + error.message);
-      }
-    } else {
-      const { error } = await supabase.from('topics').insert([
-        {
-          title: formData.title,
-          description: formData.description,
-          status,
-          created_by: user?.id,
-          condo_id: profile?.condo_id,
-          assembly_id: assemblyId
-        }
-      ]);
-
-      setSubmitting(false);
-      if (!error) {
-        setIsModalOpen(false);
-        fetchTopics();
-      } else {
-        alert('Erro ao criar pauta: ' + error.message);
-      }
+    } catch (err: any) {
+        alert('Erro ao salvar pauta: ' + err.message);
+    } finally {
+        setSubmitting(false);
     }
   };
 
@@ -164,107 +190,59 @@ export default function AdminTopics() {
         </button>
       </div>
 
-      <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-border-dark shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="p-12 flex justify-center text-primary">
-            <Loader2 className="animate-spin size-8" />
-          </div>
-        ) : (
-          <>
-            {/* Desktop Table View */}
-            <table className="hidden md:table w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-surface-dark/50">
-                  <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Título</th>
-                  <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
-                  <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Criada em</th>
-                  <th className="p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-border-dark">
-                {topics.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="p-8 text-center text-slate-500 dark:text-slate-400">
-                      Nenhuma pauta cadastrada.
-                    </td>
-                  </tr>
-                ) : (
-                  topics.map((topic) => (
-                    <tr key={topic.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                      <td className="p-4 text-sm font-bold text-slate-900 dark:text-white max-w-xs truncate">{topic.title}</td>
-                      <td className="p-4">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${getStatusStyle(topic.status)}`}>
-                          {topic.status === 'OPEN' && <Clock size={12} />}
-                          {topic.status === 'CLOSED' && <CheckCircle2 size={12} />}
-                          {getStatusLabel(topic.status)}
-                        </span>
-                      </td>
-                      <td className="p-4 text-sm text-slate-600 dark:text-slate-300 font-mono">
-                        {new Date(topic.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="p-4 flex items-center justify-end gap-1">
-                        {topic.status === 'OPEN' && (
-                          <button onClick={() => handleCloseTopic(topic.id)} title="Encerrar Votação" className="p-2 text-slate-400 hover:text-orange-500 transition-colors rounded-lg hover:bg-orange-500/10">
-                            <Lock size={16} />
-                          </button>
-                        )}
-                        <button onClick={() => openEditModal(topic)} title="Editar pauta" className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-primary/10">
-                          <Edit2 size={16} />
-                        </button>
-                        <button onClick={() => handleDelete(topic.id)} title="Excluir pauta" className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-500/10">
-                          <Trash2 size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-
-            {/* Mobile Cards View */}
-            <div className="md:hidden flex flex-col divide-y divide-slate-200 dark:divide-border-dark">
-              {topics.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 dark:text-slate-400">
-                  Nenhuma pauta cadastrada.
-                </div>
-              ) : (
-                topics.map((topic) => (
-                  <div key={topic.id} className="p-4 flex flex-col gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <div className="flex justify-between items-start gap-3">
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-snug flex-1">
-                        {topic.title}
-                      </h4>
-                      <div className="flex items-center shrink-0">
-                        {topic.status === 'OPEN' && (
-                          <button onClick={() => handleCloseTopic(topic.id)} title="Encerrar Votação" className="p-2 text-slate-400 hover:text-orange-500 transition-colors rounded-lg hover:bg-orange-500/10">
-                            <Lock size={16} />
-                          </button>
-                        )}
-                        <button onClick={() => openEditModal(topic)} title="Editar pauta" className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-primary/10">
-                          <Edit2 size={16} />
-                        </button>
-                        <button onClick={() => handleDelete(topic.id)} title="Excluir pauta" className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-500/10">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center justify-between gap-2 mt-1">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${getStatusStyle(topic.status)}`}>
-                        {topic.status === 'OPEN' && <Clock size={12} />}
-                        {topic.status === 'CLOSED' && <CheckCircle2 size={12} />}
-                        {getStatusLabel(topic.status)}
-                      </span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                        {new Date(topic.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
+      {loading ? (
+        <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-border-dark shadow-sm overflow-hidden p-12 flex justify-center text-primary">
+          <Loader2 className="animate-spin size-8" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {topics.length === 0 ? (
+            <div className="col-span-full p-12 text-center bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-border-dark text-slate-500 dark:text-slate-400">
+              Nenhuma pauta cadastrada.
             </div>
-          </>
-        )}
-      </div>
+          ) : (
+            topics.map((topic) => (
+              <div key={topic.id} className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-border-dark shadow-sm p-6 flex flex-col hover:shadow-md transition-shadow group relative">
+                <div className="flex justify-between items-start mb-3 gap-3">
+                  <h4 className="text-lg font-bold text-slate-900 dark:text-white leading-snug break-words line-clamp-2 flex-1">
+                    {topic.title}
+                  </h4>
+                  {topic.attachment_url && (
+                    <div className="shrink-0 p-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 rounded-lg" title="Possui anexo">
+                      <Paperclip size={16} />
+                    </div>
+                  )}
+                </div>
+                
+                <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 flex-1">
+                   {topic.description || <span className="italic opacity-60">Sem descrição adicional</span>}
+                </p>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 mt-auto pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${getStatusStyle(topic.status)}`}>
+                    {topic.status === 'OPEN' && <Clock size={12} />}
+                    {topic.status === 'CLOSED' && <CheckCircle2 size={12} />}
+                    {getStatusLabel(topic.status)}
+                  </span>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {topic.status === 'OPEN' && (
+                      <button onClick={() => handleCloseTopic(topic.id)} title="Encerrar Votação" className="p-2 text-slate-400 hover:text-orange-500 transition-colors rounded-lg hover:bg-orange-50 dark:hover:bg-orange-500/10">
+                        <Lock size={16} />
+                      </button>
+                    )}
+                    <button onClick={() => openEditModal(topic)} title="Editar pauta" className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                      <Edit2 size={16} />
+                    </button>
+                    <button onClick={() => handleDelete(topic.id)} title="Excluir pauta" className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Modal Nova/Editar Pauta */}
       {isModalOpen && (
@@ -297,6 +275,24 @@ export default function AdminTopics() {
                   placeholder="Detalhes da votação..."
                 ></textarea>
               </div>
+              {!editingId && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Anexo Visual/Documento (Opcional)</label>
+                  <div className="relative border border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-4 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800 group hover:border-indigo-400 transition-colors">
+                      <input 
+                          type="file" 
+                          accept="image/*,.pdf"
+                          onChange={(e) => setFormData({...formData, attachmentFile: e.target.files?.[0] || null})}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                      />
+                      {formData.attachmentFile ? (
+                          <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 truncate w-full text-center px-2">{formData.attachmentFile.name}</span>
+                      ) : (
+                          <span className="text-sm text-slate-500 group-hover:text-indigo-500 font-medium">Toque para anexar PDF ou Imagem</span>
+                      )}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="p-6 border-t border-slate-200 dark:border-border-dark flex justify-end gap-3 bg-slate-50 dark:bg-[#1c2e3e]">
               <button disabled={submitting} onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors">
