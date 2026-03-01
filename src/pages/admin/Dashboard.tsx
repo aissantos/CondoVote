@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, Link, useLocation, useNavigate, NavLink, Outlet } from 'react-router-dom';
 import { LayoutDashboard, ListTodo, Activity, LogOut, Menu, X, Users, ChevronDown } from 'lucide-react';
 import AdminOverview from './AdminOverview';
 import AdminTopics from './AdminTopics';
@@ -13,7 +13,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isAssembliesOpen, setIsAssembliesOpen] = useState(true);
+
 
   const navItems = [
     { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' }
@@ -104,7 +104,7 @@ export default function AdminDashboard() {
                         to={item.path}
                         end
                         className={({ isActive }) =>
-                          `px-4 py-2 text-sm rounded-r-lg transition-all border-l-2 -ml-[1px] ${
+                          `px-4 py-2 text-sm rounded-r-lg transition-all border-l-2 -ml-px ${
                             isActive
                               ? 'text-primary font-bold border-primary bg-primary/5 dark:bg-primary/10'
                               : 'text-slate-500 hover:text-slate-900 border-transparent hover:border-slate-300 dark:text-slate-400 dark:hover:text-white dark:hover:border-slate-600'
