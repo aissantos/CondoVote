@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Bell, ChevronRight, LogIn } from 'lucide-react';
+import { Menu, Bell, ChevronRight, LogIn, Building2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import ThemeToggle from '../../components/ThemeToggle';
 
 type Topic = {
   id: string;
@@ -19,6 +20,7 @@ export default function ResidentHome() {
   const [activeTopics, setActiveTopics] = useState<Topic[]>([]);
   const [closedTopics, setClosedTopics] = useState<Topic[]>([]);
   const [propertyName, setPropertyName] = useState<string>("Carregando...");
+  const [propertyLogo, setPropertyLogo] = useState<string | null>(null);
   const [isCheckedIn, setIsCheckedIn] = useState<boolean>(false);
   const [quorumPercent, setQuorumPercent] = useState<number>(0);
   const quorumGoal = 51;
@@ -27,14 +29,17 @@ export default function ResidentHome() {
     if (!profile?.condo_id) return;
 
     const fetchDashboardData = async () => {
-      // Puxar nome do condomínio
+      // Puxar nome do condomínio e logo
       const { data: condoData } = await supabase
         .from('condos')
-        .select('trade_name')
+        .select('trade_name, logo_url')
         .eq('id', profile.condo_id)
         .single();
         
-      if (condoData) setPropertyName(condoData.trade_name);
+      if (condoData) {
+        setPropertyName(condoData.trade_name);
+        if (condoData.logo_url) setPropertyLogo(condoData.logo_url);
+      }
       
       // Puxar meu status de check-in de hoje
       const todayStart = new Date();
@@ -106,19 +111,20 @@ export default function ResidentHome() {
         
         {/* Header Fixo Transparente */}
         <div className="flex items-center bg-white/80 dark:bg-background-dark/80 backdrop-blur-md p-4 pb-2 justify-between sticky top-0 z-20 border-b border-slate-200 dark:border-surface-border/50 transition-colors">
-          <button className="text-slate-800 dark:text-white flex size-12 shrink-0 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors">
-            <Menu size={24} />
-          </button>
+          {propertyLogo ? (
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full overflow-hidden bg-white/10 border border-slate-200 dark:border-surface-border shadow-sm">
+              <img src={propertyLogo} alt="Logo Condomínio" className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary border border-primary/20">
+              <Building2 size={20} />
+            </div>
+          )}
           <h2 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">
             {propertyName}
           </h2>
           <div className="flex w-12 items-center justify-end">
-            <button className="flex items-center justify-center rounded-full size-10 bg-transparent text-slate-800 dark:text-white hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors relative">
-              <Bell size={24} />
-              {activeTopics.length > 0 && (
-                <span className="absolute top-2 right-2 size-2 bg-red-500 rounded-full border border-white dark:border-background-dark"></span>
-              )}
-            </button>
+            <ThemeToggle className="flex items-center justify-center rounded-full size-10 bg-transparent text-slate-800 dark:text-white hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors" />
           </div>
         </div>
 
