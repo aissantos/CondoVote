@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Clock, CheckCircle2, Loader2, Lock, ArrowRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, Clock, CheckCircle2, Loader2, Lock, ArrowRight, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -199,6 +199,12 @@ export default function AdminAssemblies() {
                       </td>
                       <td className="p-4 flex items-center justify-end gap-2">
                         <button 
+                          onClick={() => navigate(`/admin/documents?assembly_id=${assembly.id}&title=${encodeURIComponent(assembly.title)}`)} 
+                          className="flex items-center gap-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 rounded-lg text-xs font-bold transition-colors"
+                        >
+                          <FileText size={14} /> Docs
+                        </button>
+                        <button 
                           onClick={() => navigate(`/admin/topics?assembly_id=${assembly.id}&title=${encodeURIComponent(assembly.title)}`)} 
                           className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-colors"
                         >
@@ -263,6 +269,12 @@ export default function AdminAssemblies() {
                             </span>
                          </div>
                          <button 
+                            onClick={() => navigate(`/admin/documents?assembly_id=${assembly.id}&title=${encodeURIComponent(assembly.title)}`)} 
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 rounded-lg text-xs font-bold shadow-sm"
+                          >
+                            <FileText size={14} /> Docs
+                          </button>
+                          <button 
                             onClick={() => navigate(`/admin/topics?assembly_id=${assembly.id}&title=${encodeURIComponent(assembly.title)}`)} 
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold shadow-sm"
                           >

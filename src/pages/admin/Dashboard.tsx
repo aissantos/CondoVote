@@ -4,6 +4,7 @@ import { LayoutDashboard, ListTodo, Activity, LogOut, Menu, X, Users } from 'luc
 import AdminOverview from './AdminOverview';
 import AdminTopics from './AdminTopics';
 import AdminAssemblies from './AdminAssemblies';
+import AdminDocuments from './AdminDocuments';
 import AdminMonitor from './AdminMonitor';
 import AdminUsers from './AdminUsers';
 
@@ -92,6 +93,7 @@ export default function AdminDashboard() {
         <Routes>
           <Route path="/" element={<AdminOverview />} />
           <Route path="/assemblies" element={<AdminAssemblies />} />
+          <Route path="/documents" element={<AdminDocuments />} />
           <Route path="/topics" element={<AdminTopics />} />
           <Route path="/monitor" element={<AdminMonitor />} />
           <Route path="/users" element={<AdminUsers />} />
