@@ -39,6 +39,9 @@ export default defineConfig(({mode}) => {
               purpose: 'any maskable'
             }
           ]
+        },
+        workbox: {
+          navigateFallbackDenylist: [/^\/admin/, /^\/super/],
         }
       })
     ],

@@ -45,7 +45,7 @@ export function useCondos() {
       const [condosResp, managersResp] = await Promise.all([
         supabase
           .from('condos')
-          .select(`*, manager:profiles(id, full_name, role)`)
+          .select(`*`)
           .order('created_at', { ascending: false }),
         supabase
           .from('profiles')
@@ -53,8 +53,20 @@ export function useCondos() {
           .eq('role', 'ADMIN')
       ]);
 
-      if (condosResp.data) setCondos(condosResp.data as Condo[]);
-      if (managersResp.data) setManagers(managersResp.data as Profile[]);
+      if (condosResp.error) console.error("Erro ao buscar condos:", condosResp.error);
+      if (managersResp.error) console.error("Erro ao buscar gestores:", managersResp.error);
+
+      const rawCondos = condosResp.data || [];
+      const loadedManagers = (managersResp.data as Profile[]) || [];
+
+      // Manual join (evita erros de cache de FK no Supabase PostgREST)
+      const combinedCondos = rawCondos.map(condo => ({
+        ...condo,
+        manager: loadedManagers.find(m => m.id === condo.manager_id) || null
+      }));
+
+      setCondos(combinedCondos as Condo[]);
+      setManagers(loadedManagers);
       
     } catch (e) {
       console.error(e);

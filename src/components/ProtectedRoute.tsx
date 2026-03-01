@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
@@ -12,6 +12,25 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, allowedRole, requireCompleteProfile = true }: ProtectedRouteProps) {
   const { session, role, profile, loading } = useAuth();
   const location = useLocation();
+
+  // "Detox" de Cache PWA: Remove ativamente Service Workers das rotas administrativas
+  useEffect(() => {
+    if (location.pathname.startsWith('/admin') || location.pathname.startsWith('/super')) {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          let unregisteredAny = false;
+          for (const registration of registrations) {
+            registration.unregister();
+            unregisteredAny = true;
+          }
+          // Se encontrou algum SW engatado nas rotas Admin, recarrega limpo após matar
+          if (unregisteredAny) {
+            window.location.reload();
+          }
+        });
+      }
+    }
+  }, [location.pathname]);
 
   if (loading) {
     return (
