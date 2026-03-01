@@ -1,18 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Clock, CheckCircle2, Loader2, Lock } from 'lucide-react';
+import { Plus, Edit2, Trash2, Clock, CheckCircle2, Loader2, Lock, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 type Topic = {
   id: string;
   title: string;
   description: string;
   status: 'OPEN' | 'CLOSED' | 'DRAFT';
+  assembly_id: string;
   created_at: string;
 };
 
 export default function AdminTopics() {
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const assemblyId = searchParams.get('assembly_id');
+  const assemblyTitle = searchParams.get('title');
+
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,14 +30,18 @@ export default function AdminTopics() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    fetchTopics();
-  }, []);
+    if (assemblyId) {
+      fetchTopics();
+    }
+  }, [assemblyId]);
 
   const fetchTopics = async () => {
+    if (!assemblyId) return;
     setLoading(true);
     const { data, error } = await supabase
       .from('topics')
       .select('*')
+      .eq('assembly_id', assemblyId)
       .order('created_at', { ascending: false });
       
     if (!error && data) {
@@ -77,7 +88,8 @@ export default function AdminTopics() {
           description: formData.description,
           status,
           created_by: user?.id,
-          condo_id: profile?.condo_id
+          condo_id: profile?.condo_id,
+          assembly_id: assemblyId
         }
       ]);
 
@@ -116,19 +128,39 @@ export default function AdminTopics() {
     return 'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400';
   };
 
+  if (!assemblyId) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center h-[60vh]">
+         <div className="bg-orange-100 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 p-4 rounded-full mb-4">
+            <Lock size={32} />
+         </div>
+         <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">Nenhuma Assembleia Selecionada</h3>
+         <p className="text-slate-500 dark:text-slate-400 mb-6">Você precisa acessar uma Assembleia específica para visualizar e gerenciar suas pautas.</p>
+         <button onClick={() => navigate('/admin/assemblies')} className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold flex items-center gap-2 transition-colors">
+            <ArrowLeft size={18} /> Voltar para Assembleias
+         </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
+      <div className="flex items-center gap-2 mb-2">
+         <button onClick={() => navigate('/admin/assemblies')} className="text-slate-500 hover:text-primary transition-colors flex items-center gap-1.5 text-sm font-semibold">
+            <ArrowLeft size={16} /> Assembleias
+         </button>
+      </div>
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Pautas</h2>
+        <div className="flex-1">
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white break-all">Pautas <span className="text-primary font-medium text-xl ml-2">({assemblyTitle || 'Vinculadas'})</span></h2>
           <p className="text-slate-500 dark:text-slate-400 mt-1">Gerencie as pautas da assembleia</p>
         </div>
         <button
           onClick={handleOpenNewTopic}
-          className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-bold transition-colors shadow-lg shadow-primary/20"
+          className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-bold transition-colors shadow-lg shadow-primary/20 shrink-0"
         >
           <Plus size={18} />
-          Nova Pauta
+          <span className="hidden sm:inline">Nova Pauta</span>
         </button>
       </div>
 

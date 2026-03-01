@@ -5,10 +5,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import ThemeToggle from '../../components/ThemeToggle';
 
-type Topic = {
+type Assembly = {
   id: string;
   title: string;
   description: string;
+  assembly_date: string;
+  assembly_type: 'AGO' | 'AGE';
   status: 'OPEN' | 'CLOSED' | 'DRAFT';
   created_at: string;
 };
@@ -17,8 +19,8 @@ export default function ResidentHome() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   
-  const [activeTopics, setActiveTopics] = useState<Topic[]>([]);
-  const [closedTopics, setClosedTopics] = useState<Topic[]>([]);
+  const [activeAssembly, setActiveAssembly] = useState<Assembly | null>(null);
+  const [closedAssemblies, setClosedAssemblies] = useState<Assembly[]>([]);
   const [propertyName, setPropertyName] = useState<string>("Carregando...");
   const [propertyLogo, setPropertyLogo] = useState<string | null>(null);
   const [isCheckedIn, setIsCheckedIn] = useState<boolean>(false);
@@ -70,26 +72,29 @@ export default function ResidentHome() {
         setQuorumPercent(Math.round((totalCheckins / totalResidents) * 100));
       }
 
-      // Puxar pautas ativas
-      const { data: openTopics } = await supabase
-        .from('topics')
+      // Fetch Active Assembly
+      const { data: openAssemblies } = await supabase
+        .from('assemblies')
         .select('*')
         .eq('condo_id', profile.condo_id)
         .eq('status', 'OPEN')
-        .order('created_at', { ascending: false });
+        .order('assembly_date', { ascending: false })
+        .limit(1);
 
-      if (openTopics) setActiveTopics(openTopics);
+      if (openAssemblies && openAssemblies.length > 0) {
+        setActiveAssembly(openAssemblies[0]);
+      }
 
-      // Puxar pautas fechadas
-      const { data: pastTopics } = await supabase
-        .from('topics')
+      // Fetch Closed Assemblies
+      const { data: pastAssemblies } = await supabase
+        .from('assemblies')
         .select('*')
         .eq('condo_id', profile.condo_id)
         .eq('status', 'CLOSED')
-        .order('created_at', { ascending: false })
+        .order('assembly_date', { ascending: false })
         .limit(3);
 
-      if (pastTopics) setClosedTopics(pastTopics);
+      if (pastAssemblies) setClosedAssemblies(pastAssemblies);
     };
 
     fetchDashboardData();
@@ -103,7 +108,7 @@ export default function ResidentHome() {
     }
   };
 
-  const mainTopic = activeTopics[0]; // Pega a pauta mais recente/principal se houver
+
 
   return (
     <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark font-display antialiased transition-colors">
@@ -150,9 +155,9 @@ export default function ResidentHome() {
         {/* Categoria: Assembleia em Andamento (Hero Card) */}
         <div className="px-4 pb-3 flex justify-between items-center mt-2">
           <h3 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Assembleia de Hoje</h3>
-          {activeTopics.length > 0 ? (
+          {activeAssembly ? (
             <span className="bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-200 dark:border-green-500/20 uppercase tracking-wider">
-              Em andamento
+              {activeAssembly.assembly_type} Em andamento
             </span>
           ) : (
              <span className="bg-slate-100 dark:bg-slate-500/10 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-500/20 uppercase tracking-wider">
@@ -171,19 +176,19 @@ export default function ResidentHome() {
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900 dark:from-surface-dark via-slate-900/40 dark:via-surface-dark/40 to-transparent"></div>
               <div className="absolute bottom-3 left-4 right-4">
                 <p className="text-white text-lg font-bold leading-tight tracking-[-0.015em]">
-                  Assembleia Geral Ordinária
+                  {activeAssembly ? (activeAssembly.assembly_type === 'AGO' ? 'Assembleia Geral Ordinária' : 'Assembleia Geral Extraordinária') : 'Nenhuma Sessão Agendada'}
                 </p>
                 <p className="text-slate-200 dark:text-text-secondary text-xs font-medium">
-                  {new Date().toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'})}
+                  {activeAssembly ? new Date(activeAssembly.assembly_date + 'T12:00:00').toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'}) : new Date().toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'})}
                 </p>
               </div>
             </div>
 
             <div className="flex flex-col gap-5 p-4">
               <div className="flex flex-col gap-1">
-                <p className="text-slate-500 dark:text-text-secondary text-[10px] font-bold uppercase tracking-widest opacity-70">Pauta Principal</p>
+                <p className="text-slate-500 dark:text-text-secondary text-[10px] font-bold uppercase tracking-widest opacity-70">Título da Sessão</p>
                 <p className="text-slate-900 dark:text-white text-base font-medium leading-snug">
-                  {mainTopic ? mainTopic.title : "Nenhuma votação ativa no momento. Aguarde o anúncio do síndico."}
+                  {activeAssembly ? activeAssembly.title : "Aguarde o anúncio de novas assembleias pelo condomínio."}
                 </p>
               </div>
               
@@ -204,18 +209,18 @@ export default function ResidentHome() {
               <div className="pt-2">
                 <button 
                   onClick={handleAssemblyClick}
-                  disabled={!mainTopic && isCheckedIn}
+                  disabled={!activeAssembly && isCheckedIn}
                   className={`w-full cursor-pointer flex items-center justify-center rounded-xl h-16 text-white text-base font-bold leading-normal transition-all shadow-xl active:scale-[0.98] ${
-                    isCheckedIn && mainTopic 
+                    isCheckedIn && activeAssembly 
                       ? 'bg-green-600 hover:bg-green-500 shadow-green-600/20' 
-                      : (!mainTopic && isCheckedIn ? 'bg-slate-200 text-slate-400 dark:bg-surface-border dark:text-slate-500 cursor-not-allowed shadow-none' : 'bg-primary hover:bg-primary/90 shadow-primary/20')
+                      : (!activeAssembly && isCheckedIn ? 'bg-slate-200 text-slate-400 dark:bg-surface-border dark:text-slate-500 cursor-not-allowed shadow-none' : 'bg-primary hover:bg-primary/90 shadow-primary/20')
                   }`}
                 >
                   {isCheckedIn ? (
-                    mainTopic ? (
-                       <>Entrar na Votação <ChevronRight size={20} className="ml-1" /></>
+                    activeAssembly ? (
+                       <>Entrar na Reunião <ChevronRight size={20} className="ml-1" /></>
                     ) : (
-                       "Aguardando Pautas..."
+                       "Aguardando Assembleia..."
                     )
                   ) : (
                     <><LogIn size={22} className="mr-3" /> Realizar Check-in</>
@@ -229,19 +234,19 @@ export default function ResidentHome() {
         {/* Assembleias Anteriores (Histórico Local) */}
         <h3 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-4">Assembleias Anteriores</h3>
         <div className="flex flex-col gap-3 px-4 pb-10">
-          {closedTopics.length > 0 ? (
-            closedTopics.map(topic => (
-              <div key={topic.id} className="flex items-center gap-4 bg-white dark:bg-surface-dark rounded-xl p-4 border border-slate-200 dark:border-surface-border/60 hover:dark:border-primary/40 hover:border-primary/40 transition-all cursor-pointer shadow-sm dark:shadow-none group">
+          {closedAssemblies.length > 0 ? (
+            closedAssemblies.map(assembly => (
+              <div key={assembly.id} className="flex items-center gap-4 bg-white dark:bg-surface-dark rounded-xl p-4 border border-slate-200 dark:border-surface-border/60 hover:dark:border-primary/40 hover:border-primary/40 transition-all cursor-pointer shadow-sm dark:shadow-none group">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1.5">
                     <span className="text-green-500 dark:text-green-400 text-[10px] font-bold uppercase tracking-wider">Concluída</span>
                     <span className="text-slate-300 dark:text-text-secondary/40 text-[10px]">•</span>
                     <span className="text-slate-500 dark:text-text-secondary text-xs font-medium">
-                      {new Date(topic.created_at).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'})}
+                      {new Date(assembly.assembly_date + 'T12:00:00').toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'})}
                     </span>
                   </div>
-                  <h4 className="text-slate-900 dark:text-white text-base font-bold mb-1 truncate">{topic.title}</h4>
-                  <p className="text-slate-500 dark:text-text-secondary text-xs line-clamp-1 opacity-70">{topic.description}</p>
+                  <h4 className="text-slate-900 dark:text-white text-base font-bold mb-1 truncate">[{assembly.assembly_type}] {assembly.title}</h4>
+                  <p className="text-slate-500 dark:text-text-secondary text-xs line-clamp-1 opacity-70">{assembly.description}</p>
                 </div>
                 <div className="flex flex-col items-center justify-center text-primary group-hover:translate-x-1 transition-transform">
                   <ChevronRight size={24} />

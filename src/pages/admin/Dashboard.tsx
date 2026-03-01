@@ -3,6 +3,7 @@ import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, ListTodo, Activity, LogOut, Menu, X, Users } from 'lucide-react';
 import AdminOverview from './AdminOverview';
 import AdminTopics from './AdminTopics';
+import AdminAssemblies from './AdminAssemblies';
 import AdminMonitor from './AdminMonitor';
 import AdminUsers from './AdminUsers';
 
@@ -13,7 +14,7 @@ export default function AdminDashboard() {
 
   const navItems = [
     { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/admin/topics', icon: ListTodo, label: 'Pautas' },
+    { path: '/admin/assemblies', icon: ListTodo, label: 'Assembleias' },
     { path: '/admin/monitor', icon: Activity, label: 'Monitor' },
     { path: '/admin/users', icon: Users, label: 'Moradores' },
   ];
@@ -90,6 +91,7 @@ export default function AdminDashboard() {
       <main className="flex-1 overflow-y-auto p-4 md:p-8 pt-24 md:pt-8 w-full scroll-smooth">
         <Routes>
           <Route path="/" element={<AdminOverview />} />
+          <Route path="/assemblies" element={<AdminAssemblies />} />
           <Route path="/topics" element={<AdminTopics />} />
           <Route path="/monitor" element={<AdminMonitor />} />
           <Route path="/users" element={<AdminUsers />} />
