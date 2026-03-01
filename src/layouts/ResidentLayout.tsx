@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, useNavigate, NavLink } from 'react-router-dom';
 import { Home, Users, FileText, User } from 'lucide-react';
 
 export default function ResidentLayout() {
