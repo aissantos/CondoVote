@@ -15,6 +15,7 @@ interface AuthContextType {
   role: 'RESIDENT' | 'ADMIN' | null;
   profile: ProfileData | null;
   loading: boolean;
+  refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType>({
   role: null,
   profile: null,
   loading: true,
+  refreshProfile: async () => {},
   signOut: async () => {},
 });
 
@@ -94,8 +96,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const refreshProfile = async () => {
+    if (user) {
+      setLoading(true);
+      await fetchRole(user.id);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ session, user, role, profile, loading, signOut }}>
+    <AuthContext.Provider value={{ session, user, role, profile, loading, refreshProfile, signOut }}>
       {children}
     </AuthContext.Provider>
   );

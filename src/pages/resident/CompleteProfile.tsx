@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 export default function CompleteProfile() {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   
   const [formData, setFormData] = useState({
     nome: profile?.full_name || '',
@@ -52,9 +52,16 @@ export default function CompleteProfile() {
 
       if (updateError) throw updateError;
       
-      // Força um pequeno refresh na sessão para o contexto puxar os novos dados
-      await supabase.auth.refreshSession();
-      navigate('/check-in');
+      // Força um recarregamento completo dos dados do perfil no React Context
+      if (refreshProfile) {
+        await refreshProfile(user.id);
+      } else {
+        await supabase.auth.refreshSession();
+        // Fallback atraso para garantir sync de estado
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      navigate('/check-in', { replace: true });
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
