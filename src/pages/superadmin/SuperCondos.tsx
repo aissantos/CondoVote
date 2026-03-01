@@ -218,6 +218,20 @@ export default function SuperCondos() {
                         </div>
                       </td>
                       <td className="p-4">
+                        {condo.manager ? (
+                          <div className="flex items-center gap-2">
+                            <div className="size-6 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 flex items-center justify-center text-xs font-bold shrink-0">
+                              {condo.manager.full_name?.charAt(0) || 'U'}
+                            </div>
+                            <span className="text-sm font-semibold text-slate-300">{condo.manager.full_name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs font-semibold px-2 py-1 rounded bg-slate-700/50 text-slate-400 uppercase tracking-widest">
+                            Pendente
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4">
                         {condo.invite_code ? (
                           <div className="flex items-center gap-2">
                             <span className="px-2.5 py-1 bg-green-500/10 border border-green-500/20 text-green-500 rounded-lg text-xs font-mono font-bold tracking-wider">
