@@ -61,7 +61,7 @@ export default function CompleteProfile() {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
       
-      navigate('/check-in', { replace: true });
+      navigate('/resident/home', { replace: true });
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);

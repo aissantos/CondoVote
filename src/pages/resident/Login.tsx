@@ -24,7 +24,7 @@ export default function ResidentLogin() {
       setError(error.message);
       setLoading(false);
     } else {
-      navigate('/check-in');
+      navigate('/resident/home');
     }
   };
 
@@ -32,7 +32,7 @@ export default function ResidentLogin() {
     supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/check-in`,
+        redirectTo: `${window.location.origin}/resident/home`,
       }
     });
   };

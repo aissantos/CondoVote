@@ -51,7 +51,7 @@ export function ProtectedRoute({ children, allowedRole, requireCompleteProfile =
 
   if (allowedRole && role !== allowedRole) {
     // Usuário logado mas sem permissão
-    let fallback = '/check-in';
+    let fallback = '/resident/home';
     if (role === 'ADMIN') fallback = '/admin';
     if (role === 'SUPERADMIN') fallback = '/super';
     return <Navigate to={fallback} replace />;

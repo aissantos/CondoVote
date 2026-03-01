@@ -13,6 +13,9 @@ import ThemeToggle from './components/ThemeToggle';
 import ResidentLogin from './pages/resident/Login';
 import ResidentRegister from './pages/resident/Register';
 import CompleteProfile from './pages/resident/CompleteProfile';
+import ResidentHome from './pages/resident/ResidentHome';
+import ResidentProfile from './pages/resident/ResidentProfile';
+import ResidentLayout from './layouts/ResidentLayout';
 import CheckIn from './pages/resident/CheckIn';
 import Topics from './pages/resident/Topics';
 import Voting from './pages/resident/Voting';
@@ -57,6 +60,20 @@ export default function App() {
               <CompleteProfile />
             </ProtectedRoute>
           } />
+
+          {/* Rotas Protegidas - App Morador (PWA Bottom Nav Layout) */}
+          <Route element={<ProtectedRoute allowedRole="RESIDENT"><ResidentLayout /></ProtectedRoute>}>
+             <Route path="/resident/home" element={<ResidentHome />} />
+             <Route path="/resident/assembly" element={<Topics />} />
+             <Route path="/resident/documents" element={
+               <div className="flex flex-col items-center justify-center h-full p-8 text-center text-slate-500">
+                 <p>Documentos da Assembleia em breve.</p>
+               </div>
+             } />
+             <Route path="/resident/profile" element={<ResidentProfile />} />
+          </Route>
+
+          {/* Rotas Protegidas Extras - Morador (Full Screen) */}
           <Route path="/check-in" element={
             <ProtectedRoute allowedRole="RESIDENT"><CheckIn /></ProtectedRoute>
           } />
