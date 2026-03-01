@@ -45,25 +45,25 @@ export default function Success() {
                 <ShieldCheck className="text-primary" size={20} />
               </div>
               <div className="p-4 grid grid-cols-2 gap-y-0">
-                <div className="flex flex-col gap-1 border-b border-slate-100 dark:border-border-dark py-3 pr-2">
+                <div className="flex flex-col gap-1 border-b border-surface-border py-3 pr-2">
                   <p className="text-slate-500 dark:text-text-secondary text-xs font-medium uppercase tracking-wide">
                     Protocolo
                   </p>
                   <p className="text-slate-900 dark:text-white text-sm font-mono font-medium">ABC123-XYZ</p>
                 </div>
-                <div className="flex flex-col gap-1 border-b border-slate-100 dark:border-border-dark py-3 pl-2 border-l border-slate-100 dark:border-l-border-dark">
+                <div className="flex flex-col gap-1 border-b border-surface-border py-3 pl-2 border-l border-l-surface-border">
                   <p className="text-slate-500 dark:text-text-secondary text-xs font-medium uppercase tracking-wide">
                     Escolha
                   </p>
                   <p className="text-green-600 dark:text-green-400 text-sm font-bold">Aprovar Orçamento</p>
                 </div>
-                <div className="flex flex-col gap-1 border-b border-slate-100 dark:border-border-dark py-3 pr-2">
+                <div className="flex flex-col gap-1 border-b border-surface-border py-3 pr-2">
                   <p className="text-slate-500 dark:text-text-secondary text-xs font-medium uppercase tracking-wide">
                     Unidade
                   </p>
                   <p className="text-slate-900 dark:text-white text-sm font-normal">Apto 402 - Bloco B</p>
                 </div>
-                <div className="flex flex-col gap-1 border-b border-slate-100 dark:border-border-dark py-3 pl-2 border-l border-slate-100 dark:border-l-border-dark">
+                <div className="flex flex-col gap-1 border-b border-surface-border py-3 pl-2 border-l border-l-surface-border">
                   <p className="text-slate-500 dark:text-text-secondary text-xs font-medium uppercase tracking-wide">
                     Data/Hora
                   </p>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Verified, Vote, History, ChevronRight, Info, Bell } from 'lucide-react';
+import { Menu, Bell, ChevronRight, LogIn } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 
@@ -9,6 +9,7 @@ type Topic = {
   title: string;
   description: string;
   status: 'OPEN' | 'CLOSED' | 'DRAFT';
+  created_at: string;
 };
 
 export default function ResidentHome() {
@@ -16,6 +17,7 @@ export default function ResidentHome() {
   const { user, profile } = useAuth();
   
   const [activeTopics, setActiveTopics] = useState<Topic[]>([]);
+  const [closedTopics, setClosedTopics] = useState<Topic[]>([]);
   const [propertyName, setPropertyName] = useState<string>("Carregando...");
   const [isCheckedIn, setIsCheckedIn] = useState<boolean>(false);
   const [quorumPercent, setQuorumPercent] = useState<number>(0);
@@ -46,13 +48,13 @@ export default function ResidentHome() {
         
       setIsCheckedIn(!!checkinCount && checkinCount > 0);
       
-      // Contar Total de Moradores do Condomínio para calcular quórum
+      // Contar Total de Moradores do Condomínio
       const { count: totalResidents } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('condo_id', profile.condo_id);
       
-      // Contar Total de Check-ins (Todos os aptos) hoje
+      // Contar Total de Check-ins hoje
       const { count: totalCheckins } = await supabase
         .from('checkins')
         .select('*', { count: 'exact', head: true })
@@ -64,18 +66,29 @@ export default function ResidentHome() {
       }
 
       // Puxar pautas ativas
-      const { data: topicsData } = await supabase
+      const { data: openTopics } = await supabase
         .from('topics')
         .select('*')
         .eq('condo_id', profile.condo_id)
         .eq('status', 'OPEN')
         .order('created_at', { ascending: false });
 
-      if (topicsData) setActiveTopics(topicsData);
+      if (openTopics) setActiveTopics(openTopics);
+
+      // Puxar pautas fechadas
+      const { data: pastTopics } = await supabase
+        .from('topics')
+        .select('*')
+        .eq('condo_id', profile.condo_id)
+        .eq('status', 'CLOSED')
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      if (pastTopics) setClosedTopics(pastTopics);
     };
 
     fetchDashboardData();
-  }, [profile?.condo_id]);
+  }, [profile?.condo_id, user?.id]);
 
   const handleAssemblyClick = () => {
     if (isCheckedIn) {
@@ -85,140 +98,158 @@ export default function ResidentHome() {
     }
   };
 
+  const mainTopic = activeTopics[0]; // Pega a pauta mais recente/principal se houver
+
   return (
-    <div className="flex flex-col h-full bg-background-light dark:bg-background-dark">
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 pt-10 pb-6">
-        <div className="flex flex-col">
-          <h1 className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
+    <div className="flex flex-col min-h-screen bg-background-dark font-display antialiased">
+      <div className="relative flex flex-1 flex-col w-full overflow-x-hidden pb-8">
+        
+        {/* Header Fixo Transparente */}
+        <div className="flex items-center bg-background-dark/80 backdrop-blur-md p-4 pb-2 justify-between sticky top-0 z-20 border-b border-surface-border/50">
+          <button className="text-white flex size-12 shrink-0 items-center justify-center rounded-full hover:bg-surface-dark transition-colors">
+            <Menu size={24} className="text-white" />
+          </button>
+          <h2 className="text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">
             {propertyName}
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Assembleia Ordinária</p>
-        </div>
-        <button className="flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-slate-800 text-slate-500 shadow-sm">
-          <Bell className="size-5" />
-        </button>
-      </header>
-
-      <div className="px-6 mb-8">
-        {/* Card Principal: Check-in & Quórum */}
-        <div className="bg-white dark:bg-surface-dark rounded-[2rem] p-8 shadow-sm border border-slate-100/50 dark:border-border-dark">
-          <div className="mb-8">
-            {isCheckedIn ? (
-              <div className="flex items-center gap-2 mb-2">
-                <Verified className="text-accent dark:text-blue-400 size-5" />
-                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400">
-                  Check-in Realizado
-                </p>
-              </div>
-            ) : null}
-            <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100 mb-1">
-              Bloco {profile?.block_number} - Unidade {profile?.unit_number}
-            </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Presente na sessão atual</p>
+          </h2>
+          <div className="flex w-12 items-center justify-end">
+            <button className="flex items-center justify-center rounded-full size-10 bg-transparent text-white hover:bg-surface-dark transition-colors relative">
+              <Bell size={24} className="text-white" />
+              {activeTopics.length > 0 && (
+                <span className="absolute top-2 right-2 size-2 bg-red-500 rounded-full border border-background-dark"></span>
+              )}
+            </button>
           </div>
+        </div>
 
-          <div className="pt-6 border-t border-slate-50 dark:border-slate-800">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400 mb-1">
-                  Resumo da Assembleia
-                </p>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold text-slate-800 dark:text-white">{quorumPercent}%</span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">das unidades</span>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Meta</p>
-                <p className="text-sm font-semibold text-slate-800 dark:text-white">{quorumGoal}%</p>
-              </div>
+        {/* Resumo Perfil */}
+        <div className="flex p-4">
+          <div className="flex gap-4 items-center">
+            <div 
+              className="bg-center bg-no-repeat bg-cover rounded-full h-14 w-14 border-2 border-primary shadow-lg flex items-center justify-center bg-surface-dark text-white font-bold text-xl" 
+            >
+              {profile?.full_name?.charAt(0) || 'U'}
             </div>
-
-            <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-              <div 
-                className="h-full rounded-full bg-accent dark:bg-blue-400 transition-all duration-1000" 
-                style={{ width: `${Math.min(quorumPercent, 100)}%` }}
-              ></div>
-            </div>
-            
-            <div className="mt-4 flex items-start gap-2">
-              <Info className="size-3 text-slate-400 mt-0.5 shrink-0" />
-              <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-                Aguardando mais unidades para atingir o quórum de deliberação.
+            <div className="flex flex-col justify-center">
+              <p className="text-white text-[20px] font-bold leading-tight tracking-[-0.015em]">
+                Olá, {profile?.full_name?.split(' ')[0] || 'Usuário'}!
+              </p>
+              <p className="text-text-secondary text-sm font-normal leading-normal">
+                Apto {profile?.unit_number}, Bloco {profile?.block_number}
               </p>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Botões de Ação Pronta */}
-      <section className="px-6 mb-10">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={handleAssemblyClick}
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-border-dark shadow-sm transition-transform active:scale-95"
-          >
-            <div className="relative">
-              <Vote className="size-5 text-slate-500 dark:text-slate-400" />
-              {activeTopics.length > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-accent dark:bg-blue-500 text-[8px] font-bold text-white">
-                  {activeTopics.length}
-                </span>
-              )}
-            </div>
-            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Votações Ativas</span>
-          </button>
-          
-          <button 
-            onClick={() => navigate('/resident/documents')}
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-border-dark shadow-sm transition-transform active:scale-95"
-          >
-            <History className="size-5 text-slate-500 dark:text-slate-400" />
-            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Meu Histórico</span>
-          </button>
-        </div>
-      </section>
-
-      {/* Próximas Pautas */}
-      <section className="px-6 pb-6">
-        <div className="mb-6 flex items-baseline justify-between">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-            Próximas Pautas
-          </h3>
-          <button className="text-[10px] font-bold text-accent dark:text-blue-400 uppercase tracking-widest border-b border-accent dark:border-blue-400 pb-0.5">
-            Ver Edital
-          </button>
-        </div>
-
-        <div className="space-y-6">
+        {/* Categoria: Assembleia em Andamento (Hero Card) */}
+        <div className="px-4 pb-3 flex justify-between items-center mt-2">
+          <h3 className="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Assembleia de Hoje</h3>
           {activeTopics.length > 0 ? (
-            activeTopics.map((topic, index) => (
-              <div key={topic.id} className="group relative flex flex-col cursor-pointer" onClick={handleAssemblyClick}>
-                <div className="flex items-start justify-between gap-4 mb-2">
-                  <div className="flex-1">
-                    <span className="block text-[10px] font-bold text-accent dark:text-blue-400 uppercase mb-1">
-                      Pauta 0{index + 1}
-                    </span>
-                    <h4 className="text-lg font-medium text-slate-800 dark:text-slate-100 leading-snug">
-                      {topic.title}
-                    </h4>
-                  </div>
-                  <ChevronRight className="size-5 text-slate-300 dark:text-slate-600 mt-5" />
-                </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-1">
-                  {topic.description}
+            <span className="bg-green-500/10 text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-500/20 uppercase tracking-wider">
+              Em andamento
+            </span>
+          ) : (
+             <span className="bg-slate-500/10 text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-500/20 uppercase tracking-wider">
+              Sem sessão
+            </span>
+          )}
+        </div>
+
+        <div className="px-4 pb-4">
+          <div className="flex flex-col items-stretch justify-start rounded-2xl overflow-hidden shadow-2xl bg-surface-dark border border-surface-border group transition-all">
+            <div className="relative w-full aspect-[21/9]">
+              <div 
+                className="absolute inset-0 bg-cover bg-center" 
+                style={{backgroundImage: 'url("https://images.unsplash.com/photo-1577414440139-2a4c10a30b6c?auto=format&fit=crop&q=80&w=2000")'}}
+              ></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-surface-dark via-surface-dark/40 to-transparent"></div>
+              <div className="absolute bottom-3 left-4 right-4">
+                <p className="text-white text-lg font-bold leading-tight tracking-[-0.015em]">
+                  Assembleia Geral Ordinária
                 </p>
-                <div className="mt-6 h-[1px] w-full bg-slate-200/60 dark:bg-slate-800"></div>
+                <p className="text-text-secondary text-xs font-medium">
+                  {new Date().toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'})}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-5 p-4">
+              <div className="flex flex-col gap-1">
+                <p className="text-text-secondary text-[10px] font-bold uppercase tracking-widest opacity-70">Pauta Principal</p>
+                <p className="text-white text-base font-medium leading-snug">
+                  {mainTopic ? mainTopic.title : "Nenhuma votação ativa no momento. Aguarde o anúncio do síndico."}
+                </p>
+              </div>
+              
+              <div className="bg-background-dark/50 rounded-xl p-4 border border-surface-border/50">
+                <div className="flex justify-between items-end mb-2.5">
+                  <span className="text-text-secondary text-xs font-medium">Quórum Atual</span>
+                  <span className="text-primary text-base font-bold">{quorumPercent}%</span>
+                </div>
+                <div className="w-full bg-surface-border rounded-full h-1.5">
+                  <div 
+                    className="bg-primary h-1.5 rounded-full shadow-[0_0_8px_rgba(19,127,236,0.4)] transition-all duration-1000" 
+                    style={{ width: `${Math.min(quorumPercent, 100)}%` }}
+                  ></div>
+                </div>
+                <p className="text-[10px] text-text-secondary/60 mt-2">Mínimo necessário: {quorumGoal}% + 1</p>
+              </div>
+              
+              <div className="pt-2">
+                <button 
+                  onClick={handleAssemblyClick}
+                  disabled={!mainTopic && isCheckedIn}
+                  className={`w-full cursor-pointer flex items-center justify-center rounded-xl h-16 text-white text-base font-bold leading-normal transition-all shadow-xl active:scale-[0.98] ${
+                    isCheckedIn && mainTopic 
+                      ? 'bg-green-600 hover:bg-green-500 shadow-green-600/20' 
+                      : (!mainTopic && isCheckedIn ? 'bg-surface-border text-slate-400 cursor-not-allowed shadow-none' : 'bg-primary hover:bg-primary/90 shadow-primary/20')
+                  }`}
+                >
+                  {isCheckedIn ? (
+                    mainTopic ? (
+                       <>Entrar na Votação <ChevronRight size={20} className="ml-1" /></>
+                    ) : (
+                       "Aguardando Pautas..."
+                    )
+                  ) : (
+                    <><LogIn size={22} className="mr-3" /> Realizar Check-in</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Assembleias Anteriores (Histórico Local) */}
+        <h3 className="text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-4">Assembleias Anteriores</h3>
+        <div className="flex flex-col gap-3 px-4 pb-10">
+          {closedTopics.length > 0 ? (
+            closedTopics.map(topic => (
+              <div key={topic.id} className="flex items-center gap-4 bg-surface-dark rounded-xl p-4 border border-surface-border/60 hover:border-primary/40 transition-all cursor-pointer group">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-green-400 text-[10px] font-bold uppercase tracking-wider">Concluída</span>
+                    <span className="text-text-secondary/40 text-[10px]">•</span>
+                    <span className="text-text-secondary text-xs font-medium">
+                      {new Date(topic.created_at).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'})}
+                    </span>
+                  </div>
+                  <h4 className="text-white text-base font-bold mb-1 truncate">{topic.title}</h4>
+                  <p className="text-text-secondary text-xs line-clamp-1 opacity-70">{topic.description}</p>
+                </div>
+                <div className="flex flex-col items-center justify-center text-primary group-hover:translate-x-1 transition-transform">
+                  <ChevronRight size={24} />
+                </div>
               </div>
             ))
           ) : (
-            <div className="text-center py-8">
-              <p className="text-sm text-slate-500">Nenhuma pauta cadastrada para esta assembleia.</p>
+            <div className="text-center py-6 text-text-secondary text-sm border border-surface-border/50 rounded-xl bg-surface-dark border-dashed">
+              Nenhum histórico de assembleia encontrado.
             </div>
           )}
         </div>
-      </section>
+        
+      </div>
     </div>
   );
 }
