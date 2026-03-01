@@ -445,7 +445,7 @@ export default function AdminAssemblies() {
               {!editingId && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5"><Image size={14}/> Imagem de Capa <span className="text-[10px] text-slate-400 font-normal">(PNG/JPG)</span></label>
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5"><Image size={14}/> Imagem de Capa <span className="text-[10px] text-slate-400 font-normal">(PNG/JPG)</span></label>
                     <div className="relative border border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-3 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800 group hover:border-indigo-400 transition-colors">
                       <input 
                           type="file" 
@@ -461,7 +461,7 @@ export default function AdminAssemblies() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5"><FileWarning size={14}/> Edital PDF <span className="text-[10px] text-slate-400 font-normal">(Max 5MB)</span></label>
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1.5"><FileWarning size={14}/> Edital PDF <span className="text-[10px] text-slate-400 font-normal">(Max 5MB)</span></label>
                     <div className="relative border border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-3 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800 group hover:border-indigo-400 transition-colors">
                       <input 
                           type="file" 

@@ -10,8 +10,12 @@ type Assembly = {
   title: string;
   description: string;
   assembly_date: string;
-  assembly_type: 'AGO' | 'AGE';
+  type: 'AGO' | 'AGE'; // Changed from assembly_type
   status: 'OPEN' | 'CLOSED' | 'DRAFT';
+  format?: 'PRESENCIAL' | 'REMOTO' | 'HIBRIDO';
+  first_call_time?: string;
+  second_call_time?: string;
+  cover_url?: string;
   created_at: string;
 };
 
@@ -157,7 +161,7 @@ export default function ResidentHome() {
           <h3 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Assembleia de Hoje</h3>
           {activeAssembly ? (
             <span className="bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-200 dark:border-green-500/20 uppercase tracking-wider">
-              {activeAssembly.assembly_type} Em andamento
+              {activeAssembly.type} Em andamento
             </span>
           ) : (
              <span className="bg-slate-100 dark:bg-slate-500/10 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-500/20 uppercase tracking-wider">
@@ -167,68 +171,139 @@ export default function ResidentHome() {
         </div>
 
         <div className="px-4 pb-4">
-          <div className="flex flex-col items-stretch justify-start rounded-2xl overflow-hidden shadow-xl dark:shadow-2xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-surface-border group transition-all">
-            <div className="relative w-full aspect-[21/9]">
-              <div 
-                className="absolute inset-0 bg-cover bg-center" 
-                style={{backgroundImage: 'url("https://images.unsplash.com/photo-1577414440139-2a4c10a30b6c?auto=format&fit=crop&q=80&w=2000")'}}
-              ></div>
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 dark:from-surface-dark via-slate-900/40 dark:via-surface-dark/40 to-transparent"></div>
-              <div className="absolute bottom-3 left-4 right-4">
-                <p className="text-white text-lg font-bold leading-tight tracking-[-0.015em]">
-                  {activeAssembly ? (activeAssembly.assembly_type === 'AGO' ? 'Assembleia Geral Ordinária' : 'Assembleia Geral Extraordinária') : 'Nenhuma Sessão Agendada'}
-                </p>
-                <p className="text-slate-200 dark:text-text-secondary text-xs font-medium">
-                  {activeAssembly ? new Date(activeAssembly.assembly_date + 'T12:00:00').toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'}) : new Date().toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'})}
-                </p>
-              </div>
-            </div>
+          {activeAssembly ? (
+            <div 
+               className="relative bg-primary overflow-hidden rounded-3xl p-6 text-white shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+               onClick={handleAssemblyClick}
+               style={{
+                 backgroundImage: activeAssembly.cover_url 
+                   ? `linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.7)), url(${activeAssembly.cover_url})` 
+                   : 'none',
+                 backgroundSize: 'cover',
+                 backgroundPosition: 'center',
+               }}
+            >
+              {/* Background Decorations para fallback */}
+              {!activeAssembly.cover_url && (
+                  <>
+                    <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white opacity-10 transition-transform duration-500 ease-in-out hover:scale-150 mix-blend-overlay"></div>
+                    <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-24 h-24 rounded-full bg-white opacity-10 transition-transform duration-500 ease-in-out hover:scale-150 mix-blend-overlay"></div>
+                  </>
+              )}
 
-            <div className="flex flex-col gap-5 p-4">
-              <div className="flex flex-col gap-1">
-                <p className="text-slate-500 dark:text-text-secondary text-[10px] font-bold uppercase tracking-widest opacity-70">Título da Sessão</p>
-                <p className="text-slate-900 dark:text-white text-base font-medium leading-snug">
-                  {activeAssembly ? activeAssembly.title : "Aguarde o anúncio de novas assembleias pelo condomínio."}
-                </p>
-              </div>
-              
-              <div className="bg-slate-50 dark:bg-background-dark/50 rounded-xl p-4 border border-slate-200 dark:border-surface-border/50">
-                <div className="flex justify-between items-end mb-2.5">
-                  <span className="text-slate-600 dark:text-text-secondary text-xs font-medium">Quórum Atual</span>
-                  <span className="text-primary text-base font-bold">{quorumPercent}%</span>
+              <div className="relative z-10">
+                <div className="flex justify-between items-start mb-6">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg backdrop-blur-md ${activeAssembly.cover_url ? 'bg-white/20' : 'bg-white/20'}`}>
+                    <Calendar size={24} className="text-white drop-shadow-md" />
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                     <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full border border-white/30 uppercase tracking-widest shadow-sm">
+                       {activeAssembly.type}
+                     </span>
+                     {activeAssembly.format && (
+                       <span className="bg-black/30 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-white/10 uppercase tracking-wider">
+                         {activeAssembly.format}
+                       </span>
+                     )}
+                  </div>
                 </div>
-                <div className="w-full bg-slate-200 dark:bg-surface-border rounded-full h-1.5">
-                  <div 
-                    className="bg-primary h-1.5 rounded-full shadow-[0_0_8px_rgba(19,127,236,0.4)] transition-all duration-1000" 
-                    style={{ width: `${Math.min(quorumPercent, 100)}%` }}
-                  ></div>
-                </div>
-                <p className="text-[10px] text-slate-500 dark:text-text-secondary/60 mt-2">Mínimo necessário: {quorumGoal}% + 1</p>
-              </div>
-              
-              <div className="pt-2">
-                <button 
-                  onClick={handleAssemblyClick}
-                  disabled={!activeAssembly && isCheckedIn}
-                  className={`w-full cursor-pointer flex items-center justify-center rounded-xl h-16 text-white text-base font-bold leading-normal transition-all shadow-xl active:scale-[0.98] ${
-                    isCheckedIn && activeAssembly 
-                      ? 'bg-green-600 hover:bg-green-500 shadow-green-600/20' 
-                      : (!activeAssembly && isCheckedIn ? 'bg-slate-200 text-slate-400 dark:bg-surface-border dark:text-slate-500 cursor-not-allowed shadow-none' : 'bg-primary hover:bg-primary/90 shadow-primary/20')
-                  }`}
-                >
-                  {isCheckedIn ? (
-                    activeAssembly ? (
-                       <>Entrar na Reunião <ChevronRight size={20} className="ml-1" /></>
-                    ) : (
-                       "Aguardando Assembleia..."
-                    )
-                  ) : (
-                    <><LogIn size={22} className="mr-3" /> Realizar Check-in</>
+                
+                <div>
+                  <h2 className="text-2xl font-bold mb-1.5 leading-tight drop-shadow-sm">{activeAssembly.title}</h2>
+                  <p className="text-indigo-100 text-sm font-medium flex items-center gap-1.5 drop-shadow-sm opacity-90 mb-4">
+                    <Clock size={14} className="opacity-80" /> 
+                    {new Date(activeAssembly.assembly_date + 'T12:00:00').toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'})}
+                    {activeAssembly.first_call_time && (
+                       <span className="ml-1 opacity-80 text-xs hidden sm:inline-block">
+                          • 1ª {activeAssembly.first_call_time.slice(0, 5)} 
+                          {activeAssembly.second_call_time && ` / 2ª ${activeAssembly.second_call_time.slice(0, 5)}`}
+                       </span>
+                    )}
+                  </p>
+                  
+                  {/* Mobile only times */}
+                  {activeAssembly.first_call_time && (
+                      <div className="sm:hidden flex items-center gap-3 mb-4 text-xs font-semibold text-white/80 bg-black/20 p-2 rounded-lg backdrop-blur-sm border border-white/10 w-fit">
+                         <div className="flex items-center gap-1"><Clock size={12}/> 1ª {activeAssembly.first_call_time.slice(0, 5)}</div>
+                         {activeAssembly.second_call_time && (
+                            <div className="flex items-center gap-1 border-l border-white/20 pl-3"><Clock size={12}/> 2ª {activeAssembly.second_call_time.slice(0, 5)}</div>
+                         )}
+                      </div>
                   )}
-                </button>
+                  
+                  <button 
+                    className="mt-2 w-full flex items-center justify-center gap-2 bg-white text-primary rounded-xl py-3 font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all text-sm group"
+                  >
+                    Confirmar Presença
+                    <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col items-stretch justify-start rounded-2xl overflow-hidden shadow-xl dark:shadow-2xl bg-white dark:bg-surface-dark border border-slate-200 dark:border-surface-border group transition-all">
+              <div className="relative w-full aspect-[21/9]">
+                <div 
+                  className="absolute inset-0 bg-cover bg-center" 
+                  style={{backgroundImage: 'url("https://images.unsplash.com/photo-1577414440139-2a4c10a30b6c?auto=format&fit=crop&q=80&w=2000")'}}
+                ></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900 dark:from-surface-dark via-slate-900/40 dark:via-surface-dark/40 to-transparent"></div>
+                <div className="absolute bottom-3 left-4 right-4">
+                  <p className="text-white text-lg font-bold leading-tight tracking-[-0.015em]">
+                    Nenhuma Sessão Agendada
+                  </p>
+                  <p className="text-slate-200 dark:text-text-secondary text-xs font-medium">
+                    {new Date().toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'})}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-5 p-4">
+                <div className="flex flex-col gap-1">
+                  <p className="text-slate-500 dark:text-text-secondary text-[10px] font-bold uppercase tracking-widest opacity-70">Título da Sessão</p>
+                  <p className="text-slate-900 dark:text-white text-base font-medium leading-snug">
+                    Aguarde o anúncio de novas assembleias pelo condomínio.
+                  </p>
+                </div>
+                
+                <div className="bg-slate-50 dark:bg-background-dark/50 rounded-xl p-4 border border-slate-200 dark:border-surface-border/50">
+                  <div className="flex justify-between items-end mb-2.5">
+                    <span className="text-slate-600 dark:text-text-secondary text-xs font-medium">Quórum Atual</span>
+                    <span className="text-primary text-base font-bold">{quorumPercent}%</span>
+                  </div>
+                  <div className="w-full bg-slate-200 dark:bg-surface-border rounded-full h-1.5">
+                    <div 
+                      className="bg-primary h-1.5 rounded-full shadow-[0_0_8px_rgba(19,127,236,0.4)] transition-all duration-1000" 
+                      style={{ width: `${Math.min(quorumPercent, 100)}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-[10px] text-slate-500 dark:text-text-secondary/60 mt-2">Mínimo necessário: {quorumGoal}% + 1</p>
+                </div>
+                
+                <div className="pt-2">
+                  <button 
+                    onClick={handleAssemblyClick}
+                    disabled={!activeAssembly && isCheckedIn}
+                    className={`w-full cursor-pointer flex items-center justify-center rounded-xl h-16 text-white text-base font-bold leading-normal transition-all shadow-xl active:scale-[0.98] ${
+                      isCheckedIn && activeAssembly 
+                        ? 'bg-green-600 hover:bg-green-500 shadow-green-600/20' 
+                        : (!activeAssembly && isCheckedIn ? 'bg-slate-200 text-slate-400 dark:bg-surface-border dark:text-slate-500 cursor-not-allowed shadow-none' : 'bg-primary hover:bg-primary/90 shadow-primary/20')
+                    }`}
+                  >
+                    {isCheckedIn ? (
+                      activeAssembly ? (
+                         <>Entrar na Reunião <ChevronRight size={20} className="ml-1" /></>
+                      ) : (
+                         "Aguardando Assembleia..."
+                      )
+                    ) : (
+                      <><LogIn size={22} className="mr-3" /> Realizar Check-in</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Assembleias Anteriores (Histórico Local) */}
@@ -245,7 +320,7 @@ export default function ResidentHome() {
                       {new Date(assembly.assembly_date + 'T12:00:00').toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'})}
                     </span>
                   </div>
-                  <h4 className="text-slate-900 dark:text-white text-base font-bold mb-1 truncate">[{assembly.assembly_type}] {assembly.title}</h4>
+                  <h4 className="text-slate-900 dark:text-white text-base font-bold mb-1 truncate">[{assembly.type}] {assembly.title}</h4>
                   <p className="text-slate-500 dark:text-text-secondary text-xs line-clamp-1 opacity-70">{assembly.description}</p>
                 </div>
                 <div className="flex flex-col items-center justify-center text-primary group-hover:translate-x-1 transition-transform">

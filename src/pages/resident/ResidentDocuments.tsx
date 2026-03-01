@@ -12,6 +12,7 @@ type AssemblyDocument = {
   assembly: {
     title: string;
     assembly_date: string;
+    format?: string;
   };
 };
 
@@ -33,7 +34,7 @@ export default function ResidentDocuments() {
       .from('assembly_documents')
       .select(`
         *,
-        assembly:assemblies(title, assembly_date)
+        assembly:assemblies(title, assembly_date, format)
       `)
       .eq('condo_id', profile?.condo_id)
       .order('created_at', { ascending: false });
@@ -112,8 +113,9 @@ export default function ResidentDocuments() {
                     </div>
                     <div className="flex-1 min-w-0 pr-2">
                       <h4 className="text-slate-900 dark:text-white font-bold text-sm leading-tight truncate">{doc.title}</h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate max-w-[200px]">
-                        Reunião: {doc.assembly?.title || 'Avulso'}
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate max-w-[200px] flex items-center gap-1">
+                        Reunião: {doc.assembly?.title || 'Avulso'} 
+                        {doc.assembly?.format && <span className="bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase">{doc.assembly.format}</span>}
                       </p>
                     </div>
                   </div>
