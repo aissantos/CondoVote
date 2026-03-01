@@ -13,6 +13,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isAssembliesOpen, setIsAssembliesOpen] = useState(false);
 
 
   const navItems = [
