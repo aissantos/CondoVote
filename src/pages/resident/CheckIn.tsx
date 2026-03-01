@@ -9,6 +9,10 @@ export default function CheckIn() {
   const { user, profile } = useAuth();
   const [condoName, setCondoName] = useState('Seu Condomínio');
   const [submitting, setSubmitting] = useState(false);
+  
+  const [formRole, setFormRole] = useState('Proprietário');
+  const [proxyFile, setProxyFile] = useState<File | null>(null);
+  const [proxyError, setProxyError] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile?.condo_id) {
@@ -23,9 +27,38 @@ export default function CheckIn() {
     e.preventDefault();
     if (!user?.id || !profile?.condo_id) return;
     
+    // Validação
+    if (formRole === 'Representante Legal' && !proxyFile) {
+        setProxyError('Para realizar o check-in como representante legal, é obrigatório anexar a procuração.');
+        return;
+    }
+    setProxyError(null);
     setSubmitting(true);
+    
+    let proxyUrl = null;
+    
+    // Processamento do upload da procuração (se aplicável)
+    if (formRole === 'Representante Legal' && proxyFile) {
+        const fileExt = proxyFile.name.split('.').pop();
+        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+        const filePath = `${profile.condo_id}/${fileName}`;
+        
+        const { error: uploadError, data } = await supabase.storage
+            .from('proxies')
+            .upload(filePath, proxyFile);
+            
+        if (uploadError) {
+            alert('Falha ao enviar documento de procuração: ' + uploadError.message);
+            setSubmitting(false);
+            return;
+        }
+        
+        // Retorna a URL pública ou caminho
+        proxyUrl = data?.path;
+    }
+
     const { error } = await supabase.from('checkins').insert([
-      { user_id: user.id, condo_id: profile.condo_id }
+      { user_id: user.id, condo_id: profile.condo_id, proxy_document_url: proxyUrl }
     ]);
     setSubmitting(false);
 
@@ -74,12 +107,12 @@ export default function CheckIn() {
                 <User size={20} />
               </span>
               <input
-                className="form-input block w-full rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-surface-dark text-slate-900 dark:text-white pl-10 focus:border-primary focus:ring-primary h-12 sm:text-sm"
+                className="form-input block w-full rounded-xl border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-surface-dark/50 text-slate-500 dark:text-slate-400 pl-10 focus:border-primary focus:ring-primary h-12 sm:text-sm cursor-not-allowed"
                 id="name"
                 placeholder="Digite seu nome completo"
                 type="text"
-                defaultValue={profile?.full_name || ''}
-                required
+                value={profile?.full_name || ''}
+                readOnly
               />
             </div>
           </div>
@@ -94,12 +127,12 @@ export default function CheckIn() {
                   <Building size={20} />
                 </span>
                 <input
-                  className="form-input block w-full rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-surface-dark text-slate-900 dark:text-white pl-10 focus:border-primary focus:ring-primary h-12 sm:text-sm"
+                  className="form-input block w-full rounded-xl border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-surface-dark/50 text-slate-500 dark:text-slate-400 pl-10 focus:border-primary focus:ring-primary h-12 sm:text-sm cursor-not-allowed"
                   id="block"
                   placeholder="Ex: Bloco A"
                   type="text"
-                  defaultValue={profile?.block_number || ''}
-                  required
+                  value={profile?.block_number || ''}
+                  readOnly
                 />
               </div>
             </div>
@@ -112,12 +145,12 @@ export default function CheckIn() {
                   <DoorOpen size={20} />
                 </span>
                 <input
-                  className="form-input block w-full rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-surface-dark text-slate-900 dark:text-white pl-10 focus:border-primary focus:ring-primary h-12 sm:text-sm"
+                  className="form-input block w-full rounded-xl border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-surface-dark/50 text-slate-500 dark:text-slate-400 pl-10 focus:border-primary focus:ring-primary h-12 sm:text-sm cursor-not-allowed"
                   id="unit"
                   placeholder="Ex: 102"
                   type="text"
-                  defaultValue={profile?.unit_number || ''}
-                  required
+                  value={profile?.unit_number || ''}
+                  readOnly
                 />
               </div>
             </div>
@@ -129,10 +162,18 @@ export default function CheckIn() {
               {['Proprietário', 'Inquilino', 'Representante Legal'].map((role, idx) => (
                 <label
                   key={role}
-                  className="relative flex items-center p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-all"
+                  className={`relative flex items-center p-3 rounded-xl border cursor-pointer transition-all ${
+                    formRole === role 
+                      ? 'border-primary bg-primary/5 dark:bg-primary/10' 
+                      : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                  }`}
                 >
                   <input
-                    defaultChecked={idx === 0}
+                    checked={formRole === role}
+                    onChange={() => {
+                        setFormRole(role);
+                        setProxyError(null);
+                    }}
                     className="h-4 w-4 text-primary border-slate-300 dark:border-slate-600 focus:ring-primary bg-transparent"
                     name="role"
                     type="radio"
@@ -150,6 +191,30 @@ export default function CheckIn() {
                 </label>
               ))}
             </div>
+            
+            {formRole === 'Representante Legal' && (
+              <div className="mt-4 p-4 rounded-xl border border-orange-200 bg-orange-50 dark:border-orange-900/50 dark:bg-orange-900/20">
+                <p className="text-sm font-semibold text-orange-800 dark:text-orange-400 mb-2">
+                  Documento Obrigatório
+                </p>
+                <p className="text-xs text-orange-700 dark:text-orange-500 mb-3">
+                  Anexe imagem ou PDF da procuração válida reconhecida para representar a unidade.
+                </p>
+                <input 
+                  type="file" 
+                  accept="image/*,.pdf" 
+                  onChange={(e) => setProxyFile(e.target.files?.[0] || null)}
+                  className="block w-full text-sm text-slate-500 dark:text-slate-400
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-orange-100 file:text-orange-700
+                    hover:file:bg-orange-200
+                    dark:file:bg-orange-900/50 dark:file:text-orange-400"
+                />
+                {proxyError && <p className="text-xs text-red-600 dark:text-red-400 mt-2 font-medium">{proxyError}</p>}
+              </div>
+            )}
           </div>
 
           <div className="pt-6 pb-2">

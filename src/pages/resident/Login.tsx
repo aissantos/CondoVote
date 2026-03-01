@@ -2,13 +2,22 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, LogIn, Mail } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function ResidentLogin() {
   const navigate = useNavigate();
+  const { session, loading: contextLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Redireciona usuários já logados
+  React.useEffect(() => {
+    if (!contextLoading && session) {
+      navigate('/resident/home', { replace: true });
+    }
+  }, [session, contextLoading, navigate]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();

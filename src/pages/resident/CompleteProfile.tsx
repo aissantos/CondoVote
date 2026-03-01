@@ -12,7 +12,8 @@ export default function CompleteProfile() {
     nome: profile?.full_name || '',
     unidade: profile?.unit_number || '',
     bloco: profile?.block_number || '',
-    inviteCode: ''
+    inviteCode: '',
+    residentType: 'MORADOR' // DEFAULT
   });
   
   const [loading, setLoading] = useState(false);
@@ -46,7 +47,8 @@ export default function CompleteProfile() {
           full_name: formData.nome,
           unit_number: formData.unidade,
           block_number: formData.bloco,
-          condo_id: condoId
+          condo_id: condoId,
+          resident_type: formData.residentType // Atualizando o tipo
         })
         .eq('id', user.id);
 
@@ -135,6 +137,20 @@ export default function CompleteProfile() {
                 placeholder="Ex: B" 
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tipo de Vínculo</label>
+            <select 
+              name="residentType" 
+              value={formData.residentType}
+              onChange={(e: any) => handleChange(e)}
+              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-surface-dark text-slate-900 dark:text-white focus:ring-2 focus:ring-primary outline-none appearance-none"
+            >
+              <option value="TITULAR">Proprietário Titular</option>
+              <option value="MORADOR">Morador Convencional</option>
+              <option value="INQUILINO">Inquilino</option>
+            </select>
           </div>
 
           <div className="pt-2">

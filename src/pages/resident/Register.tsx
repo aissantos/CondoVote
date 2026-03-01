@@ -11,7 +11,8 @@ export default function ResidentRegister() {
     senha: '',
     unidade: '',
     bloco: '',
-    inviteCode: '' // NOVO: Hash
+    inviteCode: '', // NOVO: Hash
+    residentType: 'MORADOR' // DEFAULT
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +44,7 @@ export default function ResidentRegister() {
           data: {
             full_name: formData.nome,
             role: 'RESIDENT',
+            resident_type: formData.residentType, // Passando pra trigger
             condo_id: condoId // Novo Parâmetro repassado à trigger
           }
         }
@@ -52,7 +54,7 @@ export default function ResidentRegister() {
         throw signUpError;
       }
 
-      navigate('/');
+      navigate('/resident/home');
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -115,6 +117,20 @@ export default function ResidentRegister() {
               <input name="bloco" type="text" onChange={handleChange}
                 className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-transparent text-slate-900 dark:text-white focus:ring-2 focus:ring-primary outline-none" placeholder="Ex: B" />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tipo de Vínculo</label>
+            <select 
+              name="residentType" 
+              value={formData.residentType}
+              onChange={(e: any) => handleChange(e)}
+              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-surface-dark text-slate-900 dark:text-white focus:ring-2 focus:ring-primary outline-none appearance-none"
+            >
+              <option value="TITULAR">Proprietário Titular</option>
+              <option value="MORADOR">Morador Convencional</option>
+              <option value="INQUILINO">Inquilino</option>
+            </select>
           </div>
 
           <div className="pt-2">
