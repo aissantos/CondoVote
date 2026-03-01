@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Search, Plus, MapPin, Loader2, ImagePlus, UserCircle, X, Ticket, Copy, Check } from 'lucide-react';
+import { Building2, Search, Plus, MapPin, Loader2, ImagePlus, UserCircle, X, Ticket, Copy, Check, Edit2, Trash2, Power, PowerOff } from 'lucide-react';
 import { useCondos } from '../../hooks/useCondos';
 
 export default function SuperCondos() {
   const { 
     condos, managers, loading, searchingCnpj, submitting, 
-    fetchData, searchCNPJ, createCondo 
+    fetchData, searchCNPJ, createCondo, updateCondo, deleteCondo, toggleCondoStatus 
   } = useCondos();
   
   const [search, setSearch] = useState('');
@@ -13,6 +13,7 @@ export default function SuperCondos() {
   
   // Modal state para formulário GUI UI View
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCondoId, setEditingCondoId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     cnpj: '', corporate_name: '', trade_name: '',
     address: '', neighborhood: '', city: '', state: '', zip_code: '',
@@ -54,12 +55,65 @@ export default function SuperCondos() {
     setTimeout(() => setCopiedCode(null), 2000);
   }
 
+  const openCreateModal = () => {
+    setEditingCondoId(null);
+    setFormData({
+      cnpj: '', corporate_name: '', trade_name: '',
+      address: '', neighborhood: '', city: '', state: '', zip_code: '',
+      manager_id: ''
+    });
+    setLogoFile(null);
+    setLogoPreview(null);
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (condo: any) => {
+    setEditingCondoId(condo.id);
+    setFormData({
+      cnpj: condo.cnpj,
+      corporate_name: condo.corporate_name,
+      trade_name: condo.trade_name || '',
+      address: condo.address || '',
+      neighborhood: condo.neighborhood || '',
+      city: condo.city || '',
+      state: condo.state || '',
+      zip_code: condo.zip_code || '',
+      manager_id: condo.manager_id || ''
+    });
+    setLogoFile(null);
+    setLogoPreview(condo.logo_url || null);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (confirm(`Atenção: A exclusão de [${name}] é permanente e removerá todos os dados atrelados (Pautas, Votos, Moradores). Deseja seguir?`)) {
+      try {
+        await deleteCondo(id);
+      } catch (err: any) {
+        alert('Erro ao excluir: ' + err.message);
+      }
+    }
+  };
+
+  const handleToggle = async (id: string, status: boolean) => {
+    try {
+      await toggleCondoStatus(id, status);
+    } catch (err: any) {
+      alert('Erro ao alterar status: ' + err.message);
+    }
+  };
+
   const handleSaveCondo = async () => {
     try {
-      await createCondo(formData, logoFile);
+      if (editingCondoId) {
+        await updateCondo(editingCondoId, formData, logoFile);
+      } else {
+        await createCondo(formData, logoFile);
+      }
       
       // Cleanup UI
       setIsModalOpen(false);
+      setEditingCondoId(null);
       setFormData({
         cnpj: '', corporate_name: '', trade_name: '',
         address: '', neighborhood: '', city: '', state: '', zip_code: '',
@@ -88,7 +142,7 @@ export default function SuperCondos() {
           <p className="text-slate-400 mt-1">Gerencie os clientes (instâncias SaaS) ativos na plataforma.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={openCreateModal}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold transition-colors shadow-lg shadow-blue-500/20"
         >
           <Plus size={18} />
@@ -135,17 +189,25 @@ export default function SuperCondos() {
                   </tr>
                 ) : (
                   filtered.map((condo) => (
-                    <tr key={condo.id} className="hover:bg-slate-700/20 transition-colors">
+                    <tr key={condo.id} className={`hover:bg-slate-700/20 transition-colors ${condo.is_active === false ? 'opacity-50' : ''}`}>
                       <td className="p-4 flex items-center gap-4">
-                        <div className="size-12 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
+                        <div className="size-12 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0 overflow-hidden relative">
                           {condo.logo_url ? (
                             <img src={condo.logo_url} alt="Logo" className="w-full h-full object-cover" />
                           ) : (
                             <Building2 className="text-slate-500" size={20} />
                           )}
+                          {condo.is_active === false && (
+                            <div className="absolute inset-0 bg-red-900/80 flex items-center justify-center">
+                              <PowerOff size={16} className="text-white" />
+                            </div>
+                          )}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-white leading-tight">{condo.trade_name || condo.corporate_name}</p>
+                          <p className="text-sm font-bold text-white leading-tight flex items-center gap-2">
+                            {condo.trade_name || condo.corporate_name}
+                            {condo.is_active === false && <span className="text-[10px] bg-red-500/20 text-red-500 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Inativo</span>}
+                          </p>
                           <p className="text-xs text-slate-500 mt-0.5">{condo.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5")}</p>
                         </div>
                       </td>
@@ -174,9 +236,29 @@ export default function SuperCondos() {
                         )}
                       </td>
                       <td className="p-4 text-right">
-                        <button className="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 rounded-lg text-xs font-bold transition-colors">
-                          Editar
-                        </button>
+                        <div className="flex justify-end gap-2">
+                          <button 
+                            onClick={() => openEditModal(condo)}
+                            className="p-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 rounded-lg transition-colors"
+                            title="Editar Condomínio"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button 
+                            onClick={() => handleToggle(condo.id, condo.is_active)}
+                            className={`p-2 rounded-lg transition-colors ${condo.is_active !== false ? 'bg-orange-500/10 hover:bg-orange-500/20 text-orange-500' : 'bg-green-500/10 hover:bg-green-500/20 text-green-500'}`}
+                            title={condo.is_active !== false ? "Suspender Acesso" : "Reativar Acesso"}
+                          >
+                            {condo.is_active !== false ? <PowerOff size={16} /> : <Power size={16} />}
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(condo.id, condo.corporate_name)}
+                            className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors"
+                            title="Deletar Definitivamente"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -194,7 +276,7 @@ export default function SuperCondos() {
             <div className="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-900/50 shrink-0">
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
                 <Building2 className="text-blue-500" />
-                Cadastrar Nova Instância
+                {editingCondoId ? 'Editar Instância' : 'Cadastrar Nova Instância'}
               </h3>
               <button disabled={submitting} onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
                 <X size={24} />

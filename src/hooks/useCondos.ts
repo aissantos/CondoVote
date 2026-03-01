@@ -17,6 +17,7 @@ export type Condo = {
   logo_url: string | null;
   manager_id: string | null;
   invite_code: string | null;
+  is_active: boolean;
   manager?: Profile | null;
 };
 
@@ -161,6 +162,82 @@ export function useCondos() {
     }
   };
 
+  const updateCondo = async (id: string, formData: CondoFormData, logoFile: File | null) => {
+    if (!formData.cnpj || !formData.corporate_name) {
+      throw new Error('CNPJ e Razão Social são obrigatórios.');
+    }
+    
+    setSubmitting(true);
+    let uploadedLogoUrl = null;
+
+    try {
+      if (logoFile) {
+        const fileExt = logoFile.name.split('.').pop();
+        const fileName = `${formData.cnpj.replace(/\D/g, '')}-${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('condos')
+          .upload(fileName, logoFile);
+          
+        if (uploadError) throw uploadError;
+        
+        const { data: publicUrlData } = supabase.storage.from('condos').getPublicUrl(fileName);
+        uploadedLogoUrl = publicUrlData.publicUrl;
+      }
+
+      const updatePayload: any = {
+        cnpj: formData.cnpj.replace(/\D/g, ''),
+        corporate_name: formData.corporate_name,
+        trade_name: formData.trade_name,
+        address: formData.address,
+        neighborhood: formData.neighborhood,
+        city: formData.city,
+        state: formData.state,
+        zip_code: formData.zip_code.replace(/\D/g, ''),
+        manager_id: formData.manager_id || null,
+      };
+
+      if (uploadedLogoUrl) {
+        updatePayload.logo_url = uploadedLogoUrl;
+      }
+
+      const { error: updateError } = await supabase
+        .from('condos')
+        .update(updatePayload)
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+      
+      await fetchData();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const deleteCondo = async (id: string) => {
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from('condos').delete().eq('id', id);
+      if (error) throw error;
+      await fetchData();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const toggleCondoStatus = async (id: string, currentStatus: boolean) => {
+    setSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('condos')
+        .update({ is_active: !currentStatus })
+        .eq('id', id);
+      if (error) throw error;
+      await fetchData();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return {
     condos,
     managers,
@@ -169,6 +246,9 @@ export function useCondos() {
     submitting,
     fetchData,
     searchCNPJ,
-    createCondo
+    createCondo,
+    updateCondo,
+    deleteCondo,
+    toggleCondoStatus
   };
 }
