@@ -77,9 +77,6 @@ export default function App() {
           <Route path="/check-in" element={
             <ProtectedRoute allowedRole="RESIDENT"><CheckIn /></ProtectedRoute>
           } />
-          <Route path="/topics" element={
-            <ProtectedRoute allowedRole="RESIDENT"><Topics /></ProtectedRoute>
-          } />
           <Route path="/voting" element={
             <ProtectedRoute allowedRole="RESIDENT"><Voting /></ProtectedRoute>
           } />

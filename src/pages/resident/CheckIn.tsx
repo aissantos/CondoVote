@@ -29,11 +29,10 @@ export default function CheckIn() {
     ]);
     setSubmitting(false);
 
-    // Se der erro diferente de Violação de Chave Única (já fez checkin), avise.
     if (error && error.code !== '23505') {
       alert('Falha ao registrar check-in: ' + error.message);
     } else {
-      navigate('/topics');
+      navigate('/resident/assembly', { replace: true });
     }
   };
 

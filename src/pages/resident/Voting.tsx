@@ -32,7 +32,7 @@ export default function Voting() {
     return (
       <div className="flex-1 flex flex-col min-h-screen bg-background-light dark:bg-background-dark items-center justify-center p-6 text-center">
         <p className="text-slate-500 mb-4">Nenhuma pauta selecionada para votação.</p>
-        <button onClick={() => navigate('/topics')} className="text-primary font-bold hover:underline">
+        <button onClick={() => navigate('/resident/assembly')} className="text-primary font-bold hover:underline">
           Voltar para Pautas
         </button>
       </div>
@@ -61,7 +61,7 @@ export default function Voting() {
     <div className="flex-1 flex flex-col min-h-screen bg-background-light dark:bg-background-dark max-w-md mx-auto shadow-2xl relative overflow-hidden">
       <div className="flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
         <button
-          onClick={() => navigate('/topics')}
+          onClick={() => navigate('/resident/assembly')}
           className="text-slate-900 dark:text-white flex size-12 shrink-0 items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
         >
           <ArrowLeft size={24} />

@@ -10,7 +10,7 @@ export default function Success() {
       <div className="relative flex h-full min-h-screen w-full max-w-md flex-col bg-background-light dark:bg-background-dark overflow-x-hidden">
         <div className="flex items-center bg-surface-dark dark:bg-surface-dark p-4 pb-2 justify-between border-b border-border-dark dark:border-border-dark">
           <button
-            onClick={() => navigate('/topics')}
+            onClick={() => navigate('/resident/assembly')}
             className="text-slate-900 dark:text-white flex size-12 shrink-0 items-center justify-center rounded-full hover:bg-white/10 transition-colors"
           >
             <ArrowLeft size={24} />
@@ -82,7 +82,7 @@ export default function Success() {
 
             <div className="mt-8 flex flex-col gap-3">
               <button
-                onClick={() => navigate('/topics')}
+                onClick={() => navigate('/resident/assembly')}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary h-12 px-5 text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
               >
                 <span className="truncate">Voltar à lista de pautas</span>

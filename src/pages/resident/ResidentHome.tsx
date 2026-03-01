@@ -77,6 +77,14 @@ export default function ResidentHome() {
     fetchDashboardData();
   }, [profile?.condo_id]);
 
+  const handleAssemblyClick = () => {
+    if (isCheckedIn) {
+      navigate('/resident/assembly');
+    } else {
+      navigate('/check-in');
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-background-light dark:bg-background-dark">
       {/* Header */}
@@ -148,7 +156,7 @@ export default function ResidentHome() {
       <section className="px-6 mb-10">
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => navigate('/resident/assembly')}
+            onClick={handleAssemblyClick}
             className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-border-dark shadow-sm transition-transform active:scale-95"
           >
             <div className="relative">
@@ -186,7 +194,7 @@ export default function ResidentHome() {
         <div className="space-y-6">
           {activeTopics.length > 0 ? (
             activeTopics.map((topic, index) => (
-              <div key={topic.id} className="group relative flex flex-col cursor-pointer" onClick={() => navigate('/resident/assembly')}>
+              <div key={topic.id} className="group relative flex flex-col cursor-pointer" onClick={handleAssemblyClick}>
                 <div className="flex items-start justify-between gap-4 mb-2">
                   <div className="flex-1">
                     <span className="block text-[10px] font-bold text-accent dark:text-blue-400 uppercase mb-1">
