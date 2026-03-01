@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { LogOut, User as UserIcon } from 'lucide-react';
+import { LogOut, User as UserIcon, MoonStar } from 'lucide-react';
+import ThemeToggle from '../../components/ThemeToggle';
 
 export default function ResidentProfile() {
   const { profile, signOut } = useAuth();
@@ -26,6 +27,19 @@ export default function ResidentProfile() {
             <p className="text-xs text-slate-500 font-medium">Unidade</p>
             <p className="text-base font-semibold text-slate-800 dark:text-slate-200">{profile?.unit_number}</p>
          </div>
+      </div>
+
+      <div className="bg-white dark:bg-surface-dark rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-border-dark mb-6 flex items-center justify-between">
+         <div className="flex items-center gap-3">
+             <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                 <MoonStar className="size-5 text-slate-600 dark:text-slate-400" />
+             </div>
+             <div>
+                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Aparência</p>
+                 <p className="text-xs text-slate-500">Alternar tema do aplicativo</p>
+             </div>
+         </div>
+         <ThemeToggle className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" />
       </div>
 
       <button

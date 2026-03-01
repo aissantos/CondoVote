@@ -67,30 +67,30 @@ export default function Topics() {
   });
 
   return (
-    <div className="flex-1 flex flex-col min-h-screen bg-background-dark max-w-md mx-auto relative overflow-hidden">
-      {/* Header Fixo Escuro */}
-      <div className="flex items-center justify-between px-4 py-4 bg-background-dark/80 backdrop-blur-md border-b border-surface-border sticky top-0 z-10">
+    <div className="flex-1 flex flex-col min-h-screen bg-background-light dark:bg-background-dark max-w-md mx-auto relative overflow-hidden transition-colors">
+      {/* Header Fixo Escuro/Claro */}
+      <div className="flex items-center justify-between px-4 py-4 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-surface-border sticky top-0 z-10 transition-colors">
         <button
           onClick={() => navigate('/resident/home')}
-          className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-surface-dark text-white transition-colors"
+          className="flex items-center justify-center p-2 -ml-2 rounded-full hover:bg-slate-100 dark:hover:bg-surface-dark text-slate-800 dark:text-white transition-colors"
         >
           <ArrowLeft size={24} />
         </button>
-        <h2 className="text-lg font-bold leading-tight flex-1 text-center pr-8 text-white">
+        <h2 className="text-lg font-bold leading-tight flex-1 text-center pr-8 text-slate-900 dark:text-white">
           Pautas em Votação
         </h2>
         <div className="w-8"></div>
       </div>
 
       {/* Filtros Toggle */}
-      <div className="px-4 py-4 overflow-x-auto no-scrollbar bg-background-dark border-b border-surface-border/50">
+      <div className="px-4 py-4 overflow-x-auto no-scrollbar bg-background-light dark:bg-background-dark border-b border-slate-200 dark:border-surface-border/50 transition-colors">
         <div className="flex gap-3">
           <button 
             onClick={() => setFilter('ALL')}
             className={`flex h-9 shrink-0 items-center justify-center rounded-full px-5 transition-colors ${
               filter === 'ALL' 
                 ? 'bg-primary text-white shadow-md shadow-primary/20' 
-                : 'bg-surface-dark text-slate-400 hover:text-white border border-surface-border'
+                : 'bg-white dark:bg-surface-dark text-slate-500 dark:text-slate-400 hover:text-slate-900 hover:dark:text-white border border-slate-200 dark:border-surface-border'
             }`}
           >
             <p className="text-sm font-bold leading-normal tracking-wide">Todas</p>
@@ -100,7 +100,7 @@ export default function Topics() {
              className={`flex h-9 shrink-0 items-center justify-center rounded-full px-5 transition-colors ${
               filter === 'UNVOTED' 
                 ? 'bg-primary text-white shadow-md shadow-primary/20' 
-                : 'bg-surface-dark text-slate-400 hover:text-white border border-surface-border'
+                : 'bg-white dark:bg-surface-dark text-slate-500 dark:text-slate-400 hover:text-slate-900 hover:dark:text-white border border-slate-200 dark:border-surface-border'
             }`}
           >
             <p className="text-sm font-medium leading-normal tracking-wide">Não Votadas</p>
@@ -128,8 +128,8 @@ export default function Topics() {
                 }}
                 className={`flex flex-col rounded-xl p-4 shadow-sm relative transition-all group ${
                   (topic.status === 'OPEN' && !topic.user_voted) 
-                    ? 'bg-surface-dark border-surface-border border cursor-pointer hover:border-primary/50 active:scale-[0.98]' 
-                    : 'bg-background-dark border-surface-border/50 border opacity-60 cursor-not-allowed'
+                    ? 'bg-white dark:bg-surface-dark border-slate-200 dark:border-surface-border border cursor-pointer hover:border-primary/50 active:scale-[0.98]' 
+                    : 'bg-slate-50 dark:bg-background-dark border-slate-200 dark:border-surface-border/50 border opacity-60 cursor-not-allowed'
                 }`}
               >
                 <div className="mb-2">
@@ -141,13 +141,13 @@ export default function Topics() {
                     {topic.status === 'OPEN' ? 'Ativa' : 'Encerrada'}
                   </span>
                 </div>
-                <h3 className="text-base font-bold text-white leading-tight mb-2">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight mb-2">
                   {topic.title}
                 </h3>
-                <p className="text-text-secondary text-base font-medium line-clamp-1 mb-4 opacity-70">
+                <p className="text-slate-500 dark:text-text-secondary text-base font-medium line-clamp-1 mb-4 opacity-70">
                    {topic.description}
                 </p>
-                <div className="mt-auto flex items-center justify-between pt-3 border-t border-surface-border/50">
+                <div className="mt-auto flex items-center justify-between pt-3 border-t border-slate-200 dark:border-surface-border/50">
                   {topic.user_voted ? (
                     <div className="flex items-center gap-1.5 text-primary">
                       <CheckCircle2 size={16} />
@@ -155,11 +155,11 @@ export default function Topics() {
                     </div>
                   ) : topic.status === 'OPEN' ? (
                     <>
-                      <div className="flex items-center gap-1.5 text-text-secondary">
+                      <div className="flex items-center gap-1.5 text-slate-500 dark:text-text-secondary">
                         <Clock size={16} />
                         <span className="text-[11px] font-medium tracking-wider">Livre para votar</span>
                       </div>
-                      <span className="text-[11px] font-bold text-white group-hover:text-primary transition-colors bg-white/5 px-3 py-1 rounded-full uppercase tracking-wider">
+                      <span className="text-[11px] font-bold text-slate-800 dark:text-white group-hover:text-primary transition-colors bg-black/5 dark:bg-white/5 px-3 py-1 rounded-full uppercase tracking-wider">
                         Votar
                       </span>
                     </>

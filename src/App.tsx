@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import ThemeToggle from './components/ThemeToggle';
 
 // Resident Pages
 import ResidentLogin from './pages/resident/Login';
@@ -40,7 +39,6 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <ThemeToggle />
         <InstallPrompt />
         <ReloadPrompt />
         <BrowserRouter>
