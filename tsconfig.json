@@ -24,5 +24,6 @@
     "noEmit": true,
     "types": ["vite/client", "vitest/globals"]
   },
-  "include": ["src"]
+  "include": ["src", "src/**/*.d.ts", "src/vite-env.d.ts"]
 }
+

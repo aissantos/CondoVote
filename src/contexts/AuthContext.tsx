@@ -17,6 +17,7 @@ interface AuthContextType {
   loading: boolean;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
+  error: Error | null;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -27,6 +28,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   refreshProfile: async () => {},
   signOut: async () => {},
+  error: null,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -35,27 +37,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<'RESIDENT' | 'ADMIN' | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // Pegar sessão atual
+    // 1. Inicializa Estado Consumindo Payload JWT
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
       if (session?.user) {
-        fetchRole(session.user.id);
+         // Otimização: Ler Metadados Custom injetados via JWT Proxy
+         const jwtRole = session.user.app_metadata?.role;
+         const jwtCondoId = session.user.app_metadata?.condo_id;
+         
+         if (jwtRole) {
+            setRole(jwtRole);
+            setProfile({ condo_id: jwtCondoId }); // Injeta Mock Rápido pro Loader Cair
+            setLoading(false);
+            // Delega o full fetch pro background síncrono ou pula dependendo da necessidade
+            fetchRole(session.user.id, true);
+         } else {
+            fetchRole(session.user.id);
+         }
       } else {
         setLoading(false);
       }
     });
 
-    // Escutar mudanças
+    // 2. Realtime Listener
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
       if (session?.user) {
-        fetchRole(session.user.id);
+         const jwtRole = session.user.app_metadata?.role;
+         if (jwtRole) {
+            setRole(jwtRole);
+            setLoading(false);
+            fetchRole(session.user.id, true); // Silent Refresh
+         } else {
+            fetchRole(session.user.id);
+         }
       } else {
         setRole(null);
         setProfile(null);
@@ -66,15 +90,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchRole = async (userId: string) => {
+  const fetchRole = async (userId: string, isSilentRefresh = false) => {
     try {
-      const { data, error } = await supabase
+      if (!isSilentRefresh) setError(null);
+      
+      const { data, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
         
-      if (!error && data) {
+      if (fetchError) throw fetchError;
+        
+      if (data) {
         setRole(data.role as 'RESIDENT' | 'ADMIN');
         setProfile({
           full_name: data.full_name,
@@ -83,10 +111,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           condo_id: data.condo_id
         });
       }
-    } catch (e) {
-      console.error('Erro ao buscar role', e);
+    } catch (e: any) {
+      console.error('Erro ao buscar role:', e);
+      if (!isSilentRefresh) {
+         setError(e instanceof Error ? e : new Error(e?.message || 'Falha na conexão ao carregar perfil'));
+      }
     } finally {
-      setLoading(false);
+      if (!isSilentRefresh) setLoading(false);
     }
   };
 
@@ -104,7 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, role, profile, loading, refreshProfile, signOut }}>
+    <AuthContext.Provider value={{ session, user, role, profile, loading, refreshProfile, signOut, error }}>
       {children}
     </AuthContext.Provider>
   );

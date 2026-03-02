@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Bell, ChevronRight, LogIn, Building2 } from 'lucide-react';
+import { Menu, Bell, ChevronRight, LogIn, Building2, Calendar, Clock, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import ThemeToggle from '../../components/ThemeToggle';
