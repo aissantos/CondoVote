@@ -80,5 +80,18 @@ export function usePushNotifications() {
     }
   }, []);
 
-  return { subscribeToPush, isSubscribed, pushLoading: loading };
+  const sendPush = useCallback(async (payload: { title: string; body: string; user_id?: string; condo_id?: string; url?: string }) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('send-push', {
+        body: payload
+      });
+      if (error) throw error;
+      return true;
+    } catch (err) {
+      console.error('Falha ao enviar push via Edge Function', err);
+      return false;
+    }
+  }, []);
+
+  return { subscribeToPush, sendPush, isSubscribed, pushLoading: loading };
 }

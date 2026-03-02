@@ -55,13 +55,13 @@ export default function App() {
 
           {/* Rotas Protegidas - Morador */}
           <Route path="/complete-profile" element={
-            <ProtectedRoute allowedRole="RESIDENT" requireCompleteProfile={false}>
+            <ProtectedRoute allowedRoles={['RESIDENT']} requireCompleteProfile={false}>
               <CompleteProfile />
             </ProtectedRoute>
           } />
 
           {/* Rotas Protegidas - App Morador (PWA Bottom Nav Layout) */}
-          <Route element={<ProtectedRoute allowedRole="RESIDENT"><ResidentLayout /></ProtectedRoute>}>
+          <Route element={<ProtectedRoute allowedRoles={['RESIDENT']}><ResidentLayout /></ProtectedRoute>}>
              <Route path="/resident/home" element={<ResidentHome />} />
              <Route path="/resident/assembly" element={<Topics />} />
              <Route path="/resident/documents" element={<ResidentDocuments />} />
@@ -70,23 +70,23 @@ export default function App() {
 
           {/* Rotas Protegidas Extras - Morador (Full Screen) */}
           <Route path="/check-in" element={
-            <ProtectedRoute allowedRole="RESIDENT"><CheckIn /></ProtectedRoute>
+            <ProtectedRoute allowedRoles={['RESIDENT']}><CheckIn /></ProtectedRoute>
           } />
           <Route path="/voting" element={
-            <ProtectedRoute allowedRole="RESIDENT"><Voting /></ProtectedRoute>
+            <ProtectedRoute allowedRoles={['RESIDENT']}><Voting /></ProtectedRoute>
           } />
           <Route path="/success" element={
-            <ProtectedRoute allowedRole="RESIDENT"><Success /></ProtectedRoute>
+            <ProtectedRoute allowedRoles={['RESIDENT']}><Success /></ProtectedRoute>
           } />
 
           {/* Rotas Protegidas - Admin */}
           <Route path="/admin/*" element={
-            <ProtectedRoute allowedRole="ADMIN"><AdminDashboard /></ProtectedRoute>
+            <ProtectedRoute allowedRoles={['ADMIN']}><AdminDashboard /></ProtectedRoute>
           } />
 
           {/* Rotas Protegidas - SuperAdmin */}
           <Route path="/super/*" element={
-            <ProtectedRoute allowedRole="SUPERADMIN"><SuperDashboard /></ProtectedRoute>
+            <ProtectedRoute allowedRoles={['SUPERADMIN']}><SuperDashboard /></ProtectedRoute>
           } />
         </Routes>
       </BrowserRouter>

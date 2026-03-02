@@ -12,7 +12,7 @@ interface ProfileData {
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  role: 'RESIDENT' | 'ADMIN' | null;
+  role: 'RESIDENT' | 'ADMIN' | 'SUPERADMIN' | null;
   profile: ProfileData | null;
   loading: boolean;
   refreshProfile: () => Promise<void>;
@@ -34,7 +34,7 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<'RESIDENT' | 'ADMIN' | null>(null);
+  const [role, setRole] = useState<'RESIDENT' | 'ADMIN' | 'SUPERADMIN' | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -46,16 +46,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-         // Otimização: Ler Metadados Custom injetados via JWT Proxy
-         const jwtRole = session.user.app_metadata?.role;
-         const jwtCondoId = session.user.app_metadata?.condo_id;
+         const appMetadata = session.user.app_metadata || {};
+         const jwtRole = appMetadata.role;
          
          if (jwtRole) {
             setRole(jwtRole);
-            setProfile({ condo_id: jwtCondoId }); // Injeta Mock Rápido pro Loader Cair
+            setProfile({ 
+              condo_id: appMetadata.condo_id,
+              full_name: appMetadata.full_name,
+              unit_number: appMetadata.unit_number,
+              block_number: appMetadata.block_number
+            }); 
             setLoading(false);
-            // Delega o full fetch pro background síncrono ou pula dependendo da necessidade
-            fetchRole(session.user.id, true);
+            // Delegação síncrona/waterfall foi removida em prol das JWT Custom Claims
          } else {
             fetchRole(session.user.id);
          }
@@ -72,11 +75,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-         const jwtRole = session.user.app_metadata?.role;
+         const appMetadata = session.user.app_metadata || {};
+         const jwtRole = appMetadata.role;
          if (jwtRole) {
             setRole(jwtRole);
+            setProfile({ 
+              condo_id: appMetadata.condo_id,
+              full_name: appMetadata.full_name,
+              unit_number: appMetadata.unit_number,
+              block_number: appMetadata.block_number
+            }); 
             setLoading(false);
-            fetchRole(session.user.id, true); // Silent Refresh
          } else {
             fetchRole(session.user.id);
          }
@@ -103,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (fetchError) throw fetchError;
         
       if (data) {
-        setRole(data.role as 'RESIDENT' | 'ADMIN');
+        setRole(data.role as 'RESIDENT' | 'ADMIN' | 'SUPERADMIN');
         setProfile({
           full_name: data.full_name,
           unit_number: data.unit_number,

@@ -5,11 +5,11 @@ import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRole?: 'RESIDENT' | 'ADMIN' | 'SUPERADMIN';
+  allowedRoles?: ('RESIDENT' | 'ADMIN' | 'SUPERADMIN')[];
   requireCompleteProfile?: boolean;
 }
 
-export function ProtectedRoute({ children, allowedRole, requireCompleteProfile = true }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, allowedRoles, requireCompleteProfile = true }: ProtectedRouteProps) {
   const { session, role, profile, loading, error, refreshProfile } = useAuth();
   const location = useLocation();
 
@@ -72,8 +72,8 @@ export function ProtectedRoute({ children, allowedRole, requireCompleteProfile =
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
-  if (allowedRole && role !== allowedRole) {
-    // Usuário logado mas sem permissão
+  if (allowedRoles && (!role || !allowedRoles.includes(role))) {
+    // Usuário logado mas sem a role requerida pela página
     let fallback = '/resident/home';
     if (role === 'ADMIN') fallback = '/admin';
     if (role === 'SUPERADMIN') fallback = '/super';
