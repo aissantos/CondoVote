@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { identifyUser, clearUser } from '../lib/monitoring';
 
 interface ProfileData {
   full_name?: string;
@@ -86,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               block_number: appMetadata.block_number
             }); 
             setLoading(false);
+            identifyUser(session.user.id, jwtRole); // P2.1 Sentry
          } else {
             fetchRole(session.user.id);
          }
@@ -93,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setRole(null);
         setProfile(null);
         setLoading(false);
+        clearUser(); // P2.1 Sentry — limpa user no logout
       }
     });
 

@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useToast } from '../../hooks/useToast';
+import Modal from '../../components/Modal';
 
 type Topic = {
   id: string;
@@ -201,7 +202,7 @@ export default function AdminTopics() {
           <Loader2 className="animate-spin size-8" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="list" aria-label="Lista de pautas">
           {topics.length === 0 ? (
             <div className="col-span-full p-12 text-center bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-border-dark text-slate-500 dark:text-slate-400">
               Nenhuma pauta cadastrada.
@@ -232,15 +233,27 @@ export default function AdminTopics() {
                   </span>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     {topic.status === 'OPEN' && (
-                      <button onClick={() => handleCloseTopic(topic.id)} title="Encerrar Votação" className="p-2 text-slate-400 hover:text-orange-500 transition-colors rounded-lg hover:bg-orange-50 dark:hover:bg-orange-500/10">
-                        <Lock size={16} />
+                      <button
+                        onClick={() => handleCloseTopic(topic.id)}
+                        aria-label={`Encerrar votação: ${topic.title}`}
+                        className="p-2 text-slate-400 hover:text-orange-500 transition-colors rounded-lg hover:bg-orange-50 dark:hover:bg-orange-500/10"
+                      >
+                        <Lock size={16} aria-hidden="true" />
                       </button>
                     )}
-                    <button onClick={() => openEditModal(topic)} title="Editar pauta" className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
-                      <Edit2 size={16} />
+                    <button
+                      onClick={() => openEditModal(topic)}
+                      aria-label={`Editar pauta: ${topic.title}`}
+                      className="p-2 text-slate-400 hover:text-primary transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                    >
+                      <Edit2 size={16} aria-hidden="true" />
                     </button>
-                    <button onClick={() => handleDelete(topic.id)} title="Excluir pauta" className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10">
-                      <Trash2 size={16} />
+                    <button
+                      onClick={() => handleDelete(topic.id)}
+                      aria-label={`Excluir pauta: ${topic.title}`}
+                      className="p-2 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10"
+                    >
+                      <Trash2 size={16} aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -250,70 +263,70 @@ export default function AdminTopics() {
         </div>
       )}
 
-      {/* Modal Nova/Editar Pauta */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-surface-dark rounded-2xl w-full max-w-lg shadow-xl border border-slate-200 dark:border-border-dark overflow-hidden">
-            <div className="p-6 border-b border-slate-200 dark:border-border-dark flex justify-between items-center">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">{editingId ? 'Editar Pauta' : 'Configurar Nova Pauta'}</h3>
-              <button disabled={submitting} onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                &times;
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Título da Pauta</label>
-                <input 
-                  type="text" 
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary h-10 px-3 outline-none" 
-                  placeholder="Ex: Aprovação de Orçamento" 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Descrição</label>
-                <textarea 
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary p-3 outline-none" 
-                  rows={3} 
-                  placeholder="Detalhes da votação..."
-                ></textarea>
-              </div>
-              {!editingId && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Anexo Visual/Documento (Opcional)</label>
-                  <div className="relative border border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-4 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800 group hover:border-indigo-400 transition-colors">
-                      <input 
-                          type="file" 
-                          accept="image/*,.pdf"
-                          onChange={(e) => setFormData({...formData, attachmentFile: e.target.files?.[0] || null})}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-                      />
-                      {formData.attachmentFile ? (
-                          <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 truncate w-full text-center px-2">{formData.attachmentFile.name}</span>
-                      ) : (
-                          <span className="text-sm text-slate-500 group-hover:text-indigo-500 font-medium">Toque para anexar PDF ou Imagem</span>
-                      )}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="p-6 border-t border-slate-200 dark:border-border-dark flex justify-end gap-3 bg-slate-50 dark:bg-[#1c2e3e]">
-              <button disabled={submitting} onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                Cancelar
-              </button>
-              <button disabled={submitting} onClick={() => handleSaveTopic('DRAFT')} className="px-4 py-2 text-sm font-bold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors">
-                {submitting ? 'Salvando...' : 'Salvar Rascunho'}
-              </button>
-              <button disabled={submitting} onClick={() => handleSaveTopic('OPEN')} className="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors shadow-md shadow-primary/20">
-                {submitting ? 'Salvando...' : 'Publicar e Abrir'}
-              </button>
-            </div>
+      <Modal
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingId ? 'Editar Pauta' : 'Configurar Nova Pauta'}
+        maxWidth="max-w-lg"
+        disabled={submitting}
+      >
+        <div className="p-6 space-y-4">
+          <div>
+            <label htmlFor="topic-title" className="block text-sm font-medium text-slate-300 mb-1">Título da Pauta</label>
+            <input
+              id="topic-title"
+              type="text"
+              value={formData.title}
+              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              className="w-full rounded-xl border border-slate-600 bg-slate-900/50 text-white focus:border-primary focus:ring-primary h-10 px-3 outline-none"
+              placeholder="Ex: Aprovação de Orçamento"
+              aria-required="true"
+            />
           </div>
+          <div>
+            <label htmlFor="topic-desc" className="block text-sm font-medium text-slate-300 mb-1">Descrição</label>
+            <textarea
+              id="topic-desc"
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              className="w-full rounded-xl border border-slate-600 bg-slate-900/50 text-white focus:border-primary focus:ring-primary p-3 outline-none"
+              rows={3}
+              placeholder="Detalhes da votação..."
+            />
+          </div>
+          {!editingId && (
+            <div>
+              <label htmlFor="topic-file" className="block text-sm font-medium text-slate-300 mb-1">Anexo Visual/Documento (Opcional)</label>
+              <div className="relative border border-dashed border-slate-600 rounded-xl p-4 flex flex-col items-center justify-center bg-slate-900/30 group hover:border-indigo-400 transition-colors">
+                <input
+                  id="topic-file"
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={(e) => setFormData({...formData, attachmentFile: e.target.files?.[0] || null})}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  aria-label="Selecionar anexo para a pauta"
+                />
+                {formData.attachmentFile ? (
+                  <span className="text-sm font-bold text-indigo-400 truncate w-full text-center px-2">{formData.attachmentFile.name}</span>
+                ) : (
+                  <span className="text-sm text-slate-400 group-hover:text-indigo-400 font-medium">Toque para anexar PDF ou Imagem</span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-      )}
+        <div className="p-6 border-t border-slate-700 flex justify-end gap-3 bg-slate-900/80">
+          <button disabled={submitting} onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700 rounded-lg transition-colors">
+            Cancelar
+          </button>
+          <button disabled={submitting} onClick={() => handleSaveTopic('DRAFT')} className="px-4 py-2 text-sm font-bold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors">
+            {submitting ? 'Salvando...' : 'Salvar Rascunho'}
+          </button>
+          <button disabled={submitting} onClick={() => handleSaveTopic('OPEN')} className="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors shadow-md shadow-primary/20">
+            {submitting ? 'Salvando...' : 'Publicar e Abrir'}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

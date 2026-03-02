@@ -109,9 +109,10 @@ export default function Voting() {
       <div className="flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
         <button
           onClick={() => navigate('/resident/assembly')}
+          aria-label="Voltar para lista de pautas"
           className="text-slate-900 dark:text-white flex size-12 shrink-0 items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
         >
-          <ArrowLeft size={24} />
+          <ArrowLeft size={24} aria-hidden="true" />
         </button>
         <h2 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12">
           Votação da Pauta
@@ -167,6 +168,8 @@ export default function Voting() {
           <button
             disabled={submitting}
             onClick={() => handleVote('SIM')}
+            aria-label={`Votar SIM na pauta: ${topic.title}`}
+            aria-pressed={selected === 'SIM'}
             className={`group relative flex items-center w-full p-4 rounded-xl bg-background-light dark:bg-slate-800 border-2 transition-all shadow-sm active:scale-[0.98] ${
               selected === 'SIM'
                 ? 'border-vote-yes'
@@ -208,6 +211,8 @@ export default function Voting() {
           <button
             disabled={submitting}
             onClick={() => handleVote('NÃO')}
+            aria-label={`Votar NÃO na pauta: ${topic.title}`}
+            aria-pressed={selected === 'NÃO'}
             className={`group relative flex items-center w-full p-4 rounded-xl bg-background-light dark:bg-slate-800 border-2 transition-all shadow-sm active:scale-[0.98] ${
               selected === 'NÃO'
                 ? 'border-vote-no'
@@ -249,6 +254,8 @@ export default function Voting() {
           <button
             disabled={submitting}
             onClick={() => handleVote('ABSTENÇÃO')}
+            aria-label={`Votar ABSTENÇÃO na pauta: ${topic.title}`}
+            aria-pressed={selected === 'ABSTENÇÃO'}
             className={`group relative flex items-center w-full p-4 rounded-xl bg-background-light dark:bg-slate-800 border-2 transition-all shadow-sm active:scale-[0.98] ${
               selected === 'ABSTENÇÃO'
                 ? 'border-vote-abs'
