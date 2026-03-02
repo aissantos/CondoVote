@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { AuthProvider, useAuth } from './AuthContext';
 import { supabase } from '../lib/supabase';
 import React from 'react';
@@ -85,7 +85,9 @@ describe('AuthContext', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    await result.current.signOut();
+    await act(async () => {
+      await result.current.signOut();
+    });
 
     expect(supabase.auth.signOut).toHaveBeenCalledTimes(1);
     expect(result.current.role).toBeNull();
