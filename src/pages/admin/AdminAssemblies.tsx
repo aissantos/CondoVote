@@ -10,7 +10,7 @@ type Assembly = {
   title: string;
   description: string;
   assembly_date: string;
-  type: 'AGO' | 'AGE';
+  assembly_type: 'AGO' | 'AGE';
   status: 'DRAFT' | 'OPEN' | 'CLOSED';
   format?: 'PRESENCIAL' | 'REMOTO' | 'HIBRIDO';
   first_call_time?: string;
@@ -33,7 +33,7 @@ export default function AdminAssemblies() {
     title: '', 
     description: '', 
     assembly_date: new Date().toISOString().split('T')[0],
-    type: 'AGO' as 'AGO' | 'AGE',
+    assembly_type: 'AGO' as 'AGO' | 'AGE',
     format: 'HIBRIDO' as 'PRESENCIAL' | 'REMOTO' | 'HIBRIDO',
     first_call_time: '',
     second_call_time: '',
@@ -67,7 +67,7 @@ export default function AdminAssemblies() {
       title: '', 
       description: '', 
       assembly_date: new Date().toISOString().split('T')[0],
-      type: 'AGO',
+      assembly_type: 'AGO',
       format: 'HIBRIDO',
       first_call_time: '',
       second_call_time: '',
@@ -83,7 +83,7 @@ export default function AdminAssemblies() {
       title: assembly.title, 
       description: assembly.description || '',
       assembly_date: assembly.assembly_date,
-      type: assembly.type,
+      assembly_type: assembly.assembly_type,
       format: assembly.format || 'HIBRIDO',
       first_call_time: assembly.first_call_time || '',
       second_call_time: assembly.second_call_time || '',
@@ -140,7 +140,7 @@ export default function AdminAssemblies() {
             }
         }
 
-        const fallbackTitle = `${formData.type} - ${new Date(formData.assembly_date + 'T12:00:00').toLocaleDateString()}`;
+        const fallbackTitle = `${formData.assembly_type} - ${new Date(formData.assembly_date + 'T12:00:00').toLocaleDateString()}`;
 
         if (editingId) {
           // Payload mínimo garantido — colunas opcionais adicionadas só se preenchidas
@@ -148,7 +148,7 @@ export default function AdminAssemblies() {
             title: fallbackTitle,
             description: formData.description,
             assembly_date: formData.assembly_date,
-            type: formData.type,
+            assembly_type: formData.assembly_type,
             status,
           };
           if (formData.format) updatePayload.format = formData.format;
@@ -165,7 +165,7 @@ export default function AdminAssemblies() {
             title: fallbackTitle,
             description: formData.description,
             assembly_date: formData.assembly_date,
-            type: formData.type,
+            assembly_type: formData.assembly_type,
             status,
             created_by: user?.id,
             condo_id: profile?.condo_id,
@@ -261,7 +261,7 @@ export default function AdminAssemblies() {
                   assemblies.map((assembly) => (
                     <tr key={assembly.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="p-4 text-sm font-bold text-slate-900 dark:text-white max-w-xs">{assembly.title}</td>
-                      <td className="p-4 text-sm font-medium text-slate-600 dark:text-slate-300">{assembly.type}</td>
+                      <td className="p-4 text-sm font-medium text-slate-600 dark:text-slate-300">{assembly.assembly_type}</td>
                       <td className="p-4 text-sm text-slate-600 dark:text-slate-300 font-mono">
                         {new Date(assembly.assembly_date + 'T12:00:00').toLocaleDateString()}
                       </td>
@@ -314,7 +314,7 @@ export default function AdminAssemblies() {
                     <div key={assembly.id} className="p-4 flex flex-col gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                       <div className="flex justify-between items-start gap-3">
                         <div className="flex-1">
-                          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1 block">{assembly.type}</span>
+                          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1 block">{assembly.assembly_type}</span>
                           <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
                             {assembly.title}
                           </h4>
@@ -379,8 +379,8 @@ export default function AdminAssemblies() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Tipo da Reunião</label>
                   <select
-                    value={formData.type}
-                    onChange={(e) => setFormData({...formData, type: e.target.value as 'AGO' | 'AGE'})}
+                    value={formData.assembly_type}
+                    onChange={(e) => setFormData({...formData, assembly_type: e.target.value as 'AGO' | 'AGE'})}
                     className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-primary h-11 px-3 outline-none appearance-none font-medium"
                   >
                     <option value="AGO">AGO (Ordinária)</option>
