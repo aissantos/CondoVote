@@ -20,7 +20,13 @@ export default function AdminOverview() {
 
   const [chartData, setChartData] = useState<{name: string, value: number, color: string}[]>([]);
   const [featuredTopic, setFeaturedTopic] = useState<{title: string} | null>(null);
-  const [recentUsers, setRecentUsers] = useState<{ id: string, full_name: string | null }[]>([]);
+  const [recentUsers, setRecentUsers] = useState<{
+    id?: string;
+    full_name: string | null;
+    block_number: string | null;
+    unit_number: string | null;
+    created_at: string;
+  }[]>([]);
   
   // Condomínio
   const [condoInfo, setCondoInfo] = useState<{ trade_name: string, invite_code: string | null } | null>(null);

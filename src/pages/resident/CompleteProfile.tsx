@@ -14,7 +14,7 @@ export default function CompleteProfile() {
     bloco: profile?.block_number || '',
     inviteCode: '',
     residentType: 'MORADOR', // DEFAULT
-    cpf: profile?.cpf || '' // Pegando DB ou init
+    cpf: '' // CPF nao esta no ProfileData do JWT — usuario preenche no form
   });
   
   const [lgpdAccepted, setLgpdAccepted] = useState(false);
@@ -85,7 +85,7 @@ export default function CompleteProfile() {
       
       // Força um recarregamento completo dos dados do perfil no React Context
       if (refreshProfile) {
-        await refreshProfile(user.id);
+        await refreshProfile();
       } else {
         await supabase.auth.refreshSession();
         // Fallback atraso para garantir sync de estado

@@ -261,7 +261,7 @@ export default function AdminAssemblies() {
                   assemblies.map((assembly) => (
                     <tr key={assembly.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                       <td className="p-4 text-sm font-bold text-slate-900 dark:text-white max-w-xs">{assembly.title}</td>
-                      <td className="p-4 text-sm font-medium text-slate-600 dark:text-slate-300">{assembly.assembly_type}</td>
+                      <td className="p-4 text-sm font-medium text-slate-600 dark:text-slate-300">{assembly.type}</td>
                       <td className="p-4 text-sm text-slate-600 dark:text-slate-300 font-mono">
                         {new Date(assembly.assembly_date + 'T12:00:00').toLocaleDateString()}
                       </td>
@@ -314,7 +314,7 @@ export default function AdminAssemblies() {
                     <div key={assembly.id} className="p-4 flex flex-col gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                       <div className="flex justify-between items-start gap-3">
                         <div className="flex-1">
-                          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1 block">{assembly.assembly_type}</span>
+                          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-1 block">{assembly.type}</span>
                           <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
                             {assembly.title}
                           </h4>
