@@ -160,22 +160,23 @@ export default function AdminAssemblies() {
           const { error } = await supabase.from('assemblies').update(payload).eq('id', editingId);
           if (error) throw error;
         } else {
-          const { error } = await supabase.from('assemblies').insert([
-            {
-              title: fallbackTitle,
-              description: formData.description,
-              assembly_date: formData.assembly_date,
-              type: formData.type,
-              format: formData.format,
-              first_call_time: formData.first_call_time || null,
-              second_call_time: formData.second_call_time || null,
-              status,
-              created_by: user?.id,
-              condo_id: profile?.condo_id,
-              cover_url,
-              notice_url
-            }
-          ]);
+          const insertPayload: Record<string, unknown> = {
+            title: fallbackTitle,
+            description: formData.description,
+            assembly_date: formData.assembly_date,
+            type: formData.type,
+            format: formData.format,
+            first_call_time: formData.first_call_time || null,
+            second_call_time: formData.second_call_time || null,
+            status,
+            created_by: user?.id,
+            condo_id: profile?.condo_id,
+          };
+          // Só inclui as URLs se o upload realmente ocorreu
+          if (cover_url) insertPayload.cover_url = cover_url;
+          if (notice_url) insertPayload.notice_url = notice_url;
+
+          const { error } = await supabase.from('assemblies').insert([insertPayload]);
           if (error) throw error;
         }
 
