@@ -143,36 +143,36 @@ export default function AdminAssemblies() {
         const fallbackTitle = `${formData.type} - ${new Date(formData.assembly_date + 'T12:00:00').toLocaleDateString()}`;
 
         if (editingId) {
-          const payload: any = {
+          // Payload mínimo garantido — colunas opcionais adicionadas só se preenchidas
+          const updatePayload: Record<string, unknown> = {
             title: fallbackTitle,
             description: formData.description,
             assembly_date: formData.assembly_date,
             type: formData.type,
-            format: formData.format,
-            first_call_time: formData.first_call_time || null,
-            second_call_time: formData.second_call_time || null,
-            status
+            status,
           };
-          
-          if (cover_url) payload.cover_url = cover_url;
-          if (notice_url) payload.notice_url = notice_url;
+          if (formData.format) updatePayload.format = formData.format;
+          if (formData.first_call_time) updatePayload.first_call_time = formData.first_call_time;
+          if (formData.second_call_time) updatePayload.second_call_time = formData.second_call_time;
+          if (cover_url) updatePayload.cover_url = cover_url;
+          if (notice_url) updatePayload.notice_url = notice_url;
 
-          const { error } = await supabase.from('assemblies').update(payload).eq('id', editingId);
+          const { error } = await supabase.from('assemblies').update(updatePayload).eq('id', editingId);
           if (error) throw error;
         } else {
+          // Payload mínimo garantido — colunas opcionais adicionadas só se preenchidas
           const insertPayload: Record<string, unknown> = {
             title: fallbackTitle,
             description: formData.description,
             assembly_date: formData.assembly_date,
             type: formData.type,
-            format: formData.format,
-            first_call_time: formData.first_call_time || null,
-            second_call_time: formData.second_call_time || null,
             status,
             created_by: user?.id,
             condo_id: profile?.condo_id,
           };
-          // Só inclui as URLs se o upload realmente ocorreu
+          if (formData.format) insertPayload.format = formData.format;
+          if (formData.first_call_time) insertPayload.first_call_time = formData.first_call_time;
+          if (formData.second_call_time) insertPayload.second_call_time = formData.second_call_time;
           if (cover_url) insertPayload.cover_url = cover_url;
           if (notice_url) insertPayload.notice_url = notice_url;
 
