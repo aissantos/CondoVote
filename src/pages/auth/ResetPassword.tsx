@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Lock, Loader2 } from 'lucide-react';
+import { useToast } from '../../hooks/useToast';
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -9,6 +10,7 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const toast = useToast();
 
   // O Supabase lê automaticamente o '#access_token' da URL da Vercel
   useEffect(() => {
@@ -37,7 +39,7 @@ export default function ResetPassword() {
       
       if (error) throw error;
       
-      alert('Senha atualizada com sucesso! Você já pode entrar.');
+      toast.success('Senha atualizada com sucesso! Você já pode entrar.');
       navigate('/');
     } catch (err) {
       if (err instanceof Error) setError(err.message || 'Não foi possível salvar a nova senha.');

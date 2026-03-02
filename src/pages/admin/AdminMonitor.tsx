@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, Filter, Download, StopCircle, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../hooks/useToast';
 
 type Participant = {
   id: string;
@@ -14,6 +15,7 @@ type Participant = {
 
 export default function AdminMonitor() {
   const { profile } = useAuth();
+  const toast = useToast();
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [activeTopic, setActiveTopic] = useState<{ id: string, title: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,78 +45,66 @@ export default function AdminMonitor() {
     if (!profile?.condo_id) return;
 
     try {
-      // 1. Get active topic
-      const { data: topics } = await supabase
-        .from('topics')
-        .select('id, title')
-        .eq('condo_id', profile.condo_id)
-        .eq('status', 'OPEN')
-        .order('created_at', { ascending: false })
-        .limit(1);
+      const [topicResult, residentsResult] = await Promise.all([
+        // Query 1: Pauta ativa
+        supabase
+          .from('topics')
+          .select('id, title')
+          .eq('condo_id', profile.condo_id)
+          .eq('status', 'OPEN')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
 
-      const topicId = topics && topics.length > 0 ? topics[0].id : null;
-      if (topics && topics.length > 0) setActiveTopic(topics[0]);
-      else setActiveTopic(null);
+        // Query 2: Moradores + checkins + votos em uma só chamada
+        supabase
+          .from('profiles')
+          .select(`
+            id,
+            full_name,
+            unit_number,
+            block_number,
+            checkins ( user_id, created_at ),
+            votes ( user_id, choice, topic_id )
+          `)
+          .eq('condo_id', profile.condo_id)
+          .eq('role', 'RESIDENT'),
+      ]);
 
-      // 2. Get all residents
-      const { data: residents } = await supabase
-        .from('profiles')
-        .select('id, full_name, unit_number, block_number')
-        .eq('condo_id', profile.condo_id)
-        .eq('role', 'RESIDENT');
+      const activeTopic = topicResult.data ?? null;
+      setActiveTopic(activeTopic);
 
-      // 3. Get modern checkins
-      const { data: checkins } = await supabase
-        .from('checkins')
-        .select('user_id, created_at')
-        .eq('condo_id', profile.condo_id);
+      if (!residentsResult.data) return;
 
-      // 4. Get votes for active topic
-      let votes: any[] = [];
-      if (topicId) {
-        const { data: topicVotes } = await supabase
-          .from('votes')
-          .select('user_id, choice')
-          .eq('topic_id', topicId);
-        if (topicVotes) votes = topicVotes;
-      }
-
-      // 5. Combine data
-      if (!residents) return;
-
-      const mergedData = residents.map(resident => {
-        const userCheckin = checkins?.find(c => c.user_id === resident.id);
-        const userVote = votes.find(v => v.user_id === resident.id);
-
-        let checkInTime = '-';
-        if (userCheckin) {
-          const date = new Date(userCheckin.created_at);
-          checkInTime = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
+      const mergedData: Participant[] = residentsResult.data.map((resident: any) => {
+        const checkin = resident.checkins?.[0];
+        const vote = activeTopic
+          ? resident.votes?.find((v: any) => v.topic_id === activeTopic.id)
+          : null;
 
         return {
           id: resident.id,
-          name: resident.full_name || 'Usuário Sem Nome',
-          unit: `Blc ${resident.block_number || '?'} - Und ${resident.unit_number || '?'}`,
-          checkInTime,
-          voted: !!userVote,
-          option: userVote ? userVote.choice : '-'
+          name: resident.full_name ?? 'Usuário Sem Nome',
+          unit: `Blc ${resident.block_number ?? '?'} - Und ${resident.unit_number ?? '?'}`,
+          checkInTime: checkin
+            ? new Date(checkin.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : '-',
+          voted: !!vote,
+          option: vote?.choice ?? '-',
         };
       });
 
-      // Ordenar: Primeiro quem votou, depois check-ins
+      // Ordenar: quem votou primeiro, depois check-in
       mergedData.sort((a, b) => {
-        if (a.voted === b.voted) {
-            if (a.checkInTime !== '-' && b.checkInTime === '-') return -1;
-            if (a.checkInTime === '-' && b.checkInTime !== '-') return 1;
-            return 0;
-        }
-        return a.voted ? -1 : 1;
+        if (a.voted !== b.voted) return a.voted ? -1 : 1;
+        if (a.checkInTime !== '-' && b.checkInTime === '-') return -1;
+        if (a.checkInTime === '-' && b.checkInTime !== '-') return 1;
+        return 0;
       });
 
       setParticipants(mergedData);
     } catch (e) {
-      console.error(e);
+      console.error('[AdminMonitor]', e);
     } finally {
       setLoading(false);
     }
@@ -139,7 +129,7 @@ export default function AdminMonitor() {
       .update({ status: 'CLOSED' })
       .eq('id', activeTopic.id);
 
-    if (error) alert('Erro ao encerrar pauta: ' + error.message);
+    if (error) toast.error('Erro ao encerrar pauta: ' + error.message);
     else fetchMonitorData();
   };
 

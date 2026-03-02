@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Building2, User, Building, DoorOpen, CheckCircle2, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { useToast } from '../../hooks/useToast';
 
 export default function CheckIn() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const toast = useToast();
   const [condoName, setCondoName] = useState('Seu Condomínio');
   const [submitting, setSubmitting] = useState(false);
   
@@ -48,7 +50,7 @@ export default function CheckIn() {
             .upload(filePath, proxyFile);
             
         if (uploadError) {
-            alert('Falha ao enviar documento de procuração: ' + uploadError.message);
+            toast.error('Falha ao enviar documento de procuração: ' + uploadError.message);
             setSubmitting(false);
             return;
         }
@@ -63,7 +65,7 @@ export default function CheckIn() {
     setSubmitting(false);
 
     if (error && error.code !== '23505') {
-      alert('Falha ao registrar check-in: ' + error.message);
+      toast.error('Falha ao registrar check-in: ' + error.message);
     } else {
       navigate('/resident/assembly', { replace: true });
     }

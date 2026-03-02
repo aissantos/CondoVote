@@ -6,9 +6,11 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useAuth } from '../../contexts/AuthContext';
 import { Copy, Check, Ticket } from 'lucide-react';
+import { useToast } from '../../hooks/useToast';
 
 export default function AdminOverview() {
   const { profile } = useAuth();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [statsData, setStatsData] = useState({
     participants: 0,
@@ -21,7 +23,7 @@ export default function AdminOverview() {
   const [recentUsers, setRecentUsers] = useState<{ id: string, full_name: string | null }[]>([]);
   
   // Condomínio
-  const [condoInfo, setCondoInfo] = useState<{ name: string, invite_code: string | null } | null>(null);
+  const [condoInfo, setCondoInfo] = useState<{ trade_name: string, invite_code: string | null } | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   useEffect(() => {
@@ -56,7 +58,7 @@ export default function AdminOverview() {
       // Fetch Condo
       const { data: condo } = await supabase
         .from('condos')
-        .select('name, invite_code')
+        .select('trade_name, invite_code')
         .eq('id', profile.condo_id)
         .single();
       if (condo) setCondoInfo(condo);
@@ -139,7 +141,7 @@ export default function AdminOverview() {
       pdf.save('relatorio-assembleia.pdf');
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
-      alert('Houve um erro ao gerar o relatório.');
+      toast.error('Houve um erro ao gerar o relatório.');
     }
   };
 
@@ -187,7 +189,7 @@ export default function AdminOverview() {
               </div>
               <div>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white">Código do seu Condomínio</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Compartilhe isso no grupo de WhatsApp para que os moradores possam se cadastrar no {condoInfo.name}.</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Compartilhe isso no grupo de WhatsApp para que os moradores possam se cadastrar no {condoInfo.trade_name}.</p>
               </div>
             </div>
             

@@ -125,14 +125,12 @@ export function useCondos() {
         uploadedLogoUrl = publicUrlData.publicUrl;
       }
 
-      // Gera um invite code de 6 caracteres seguro (letras maiúsculas e números)
-      const generateInviteCode = () => {
-        const charset = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sem I, O, 1 e 0 para evitar confusões
-        let code = "";
-        for (let i = 0; i < 6; i++) {
-          code += charset.charAt(Math.floor(Math.random() * charset.length));
-        }
-        return code;
+      // Gera um invite code de 6 caracteres criptograficamente seguro
+      const generateInviteCode = (): string => {
+        const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sem I, O, 1, 0 para evitar confusões
+        const randomValues = new Uint8Array(6);
+        crypto.getRandomValues(randomValues); // Web Crypto API — criptograficamente seguro
+        return Array.from(randomValues).map((byte) => charset[byte % charset.length]).join('');
       };
 
       const newInviteCode = generateInviteCode();

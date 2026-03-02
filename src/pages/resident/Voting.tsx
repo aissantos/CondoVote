@@ -1,60 +1,108 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, ThumbsUp, ThumbsDown, MinusCircle, BadgeInfo, Timer, Loader2, Paperclip } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../hooks/useToast';
+
+type VoteChoice = 'SIM' | 'NÃO' | 'ABSTENÇÃO';
 
 export default function Voting() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const toast = useToast();
   
   // Topic passado via navegação do componente Topics.tsx
   const topic = location.state?.topic;
 
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<VoteChoice | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [alreadyVoted, setAlreadyVoted] = useState(false);
+  const [checkingVote, setCheckingVote] = useState(true);
   const [profile, setProfile] = useState<{unit_number?: string, block_number?: string, full_name?: string} | null>(null);
 
+  // Carrega perfil e verifica voto existente em paralelo
   useEffect(() => {
-    if (user) {
-      supabase.from('profiles')
-        .select('unit_number, block_number, full_name')
-        .eq('id', user.id)
-        .single()
-        .then(({ data }) => setProfile(data as { unit_number?: string, block_number?: string, full_name?: string } | null));
-    }
-  }, [user]);
+    if (!user || !topic) return;
+
+    const loadData = async () => {
+      const [profileResult, voteResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('unit_number, block_number, full_name')
+          .eq('id', user.id)
+          .single(),
+        supabase
+          .from('votes')
+          .select('id, choice')
+          .eq('topic_id', topic.id)
+          .eq('user_id', user.id)
+          .maybeSingle(), // maybeSingle() não lança erro quando não encontra
+      ]);
+
+      if (profileResult.data) setProfile(profileResult.data);
+
+      // Se já votou, redirecionar imediatamente para a tela de sucesso
+      if (voteResult.data) {
+        navigate('/success', { replace: true });
+        return;
+      }
+
+      setCheckingVote(false);
+    };
+
+    loadData();
+  }, [user, topic, navigate]);
 
   // Se o usuário acessar a rota diretamente na URL
   if (!topic) {
     return (
       <div className="flex-1 flex flex-col min-h-screen bg-background-light dark:bg-background-dark items-center justify-center p-6 text-center">
         <p className="text-slate-500 mb-4">Nenhuma pauta selecionada para votação.</p>
-        <button onClick={() => navigate('/resident/assembly')} className="text-primary font-bold hover:underline">
+        <button onClick={() => navigate('/resident/assembly')} className="text-primary font-bold hover:underline" aria-label="Voltar para lista de pautas">
           Voltar para Pautas
         </button>
       </div>
     );
   }
 
-  const handleVote = async (option: string) => {
+  // Estado de loading inicial (verificando voto existente)
+  if (checkingVote && topic) {
+    return (
+      <div className="flex-1 flex flex-col min-h-screen items-center justify-center bg-background-light dark:bg-background-dark">
+        <Loader2 className="animate-spin text-primary size-8" aria-label="Verificando participação..." />
+      </div>
+    );
+  }
+
+  const handleVote = useCallback(async (option: VoteChoice) => {
+    if (!user?.id || submitting || alreadyVoted) return;
+
     setSelected(option);
     setSubmitting(true);
 
     const { error } = await supabase.from('votes').insert([
-      { topic_id: topic.id, user_id: user?.id, choice: option }
+      { topic_id: topic.id, user_id: user.id, choice: option }
     ]);
 
     setSubmitting(false);
 
     if (error) {
-      alert('Erro ao registrar voto: ' + error.message);
+      // Tratamento específico para violação de unique constraint (voto duplo)
+      if (error.code === '23505') {
+        setAlreadyVoted(true);
+        navigate('/success', { replace: true });
+        return;
+      }
+      toast.error('Erro ao registrar voto: ' + error.message);
+      console.error('[Voting] Erro ao inserir voto:', error);
       setSelected(null);
     } else {
-      setTimeout(() => navigate('/success'), 600);
+      setAlreadyVoted(true);
+      setTimeout(() => navigate('/success', { replace: true }), 600);
     }
-  };
+  }, [user, topic, submitting, alreadyVoted, navigate]);
 
   return (
     <div className="flex-1 flex flex-col min-h-screen bg-background-light dark:bg-background-dark max-w-md mx-auto shadow-2xl relative overflow-hidden">

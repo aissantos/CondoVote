@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, Clock, CheckCircle2, Loader2, Lock, ArrowRight, Fi
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../../hooks/useToast';
 
 type Assembly = {
   id: string;
@@ -22,6 +23,7 @@ type Assembly = {
 export default function AdminAssemblies() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [assemblies, setAssemblies] = useState<Assembly[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -98,7 +100,10 @@ export default function AdminAssemblies() {
   };
 
   const handleSave = async (status: 'DRAFT' | 'OPEN') => {
-    if (!formData.assembly_date) return alert('Data é obrigatória');
+    if (!formData.assembly_date) {
+      toast.warning('Data é obrigatória');
+      return;
+    }
     setSubmitting(true);
     
     try {
@@ -177,8 +182,9 @@ export default function AdminAssemblies() {
         setIsModalOpen(false);
         setEditingId(null);
         fetchAssemblies();
-    } catch (err: any) {
-        alert('Erro ao salvar assembleia: ' + err.message);
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+        toast.error('Erro ao salvar assembleia: ' + msg);
     } finally {
         setSubmitting(false);
     }

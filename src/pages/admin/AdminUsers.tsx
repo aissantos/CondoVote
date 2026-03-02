@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Search, Filter, Mail, Building, AlertTriangle, ShieldCheck, UserX, Loader2 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import React, { useState } from 'react';
+import { Users, Search, AlertTriangle, Building, ShieldCheck, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePaginatedQuery } from '../../hooks/usePaginatedQuery';
 
 type Profile = {
   id: string;
@@ -12,76 +12,57 @@ type Profile = {
   created_at: string;
 };
 
+const PAGE_SIZE = 15;
+
 export default function AdminUsers() {
   const { profile } = useAuth();
-  const [users, setUsers] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'ALL' | 'INCOMPLETE'>('ALL');
 
-  useEffect(() => {
-    if (profile?.condo_id) {
-      fetchUsers();
-    }
-  }, [profile?.condo_id]);
+  // P2.3 — Server-side pagination: só carrega a página atual do DB
+  const {
+    data: users,
+    total,
+    page,
+    totalPages,
+    loading,
+    setPage,
+  } = usePaginatedQuery<Profile>(
+    'profiles',
+    {
+      role: 'RESIDENT',
+      condo_id: profile?.condo_id,
+    },
+    PAGE_SIZE
+  );
 
-  const fetchUsers = async () => {
-    if (!profile?.condo_id) return;
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('role', 'RESIDENT')
-      .eq('condo_id', profile.condo_id)
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setUsers(data as Profile[]);
-    }
-    setLoading(false);
-  };
-
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch = 
-      (user.full_name?.toLowerCase().includes(search.toLowerCase()) || '') ||
-      (user.unit_number?.toLowerCase().includes(search.toLowerCase()) || '') ||
-      (user.block_number?.toLowerCase().includes(search.toLowerCase()) || '');
-
-    const isIncomplete = !user.unit_number || !user.block_number;
-    const matchesFilter = filter === 'ALL' || (filter === 'INCOMPLETE' && isIncomplete);
-
-    return matchesSearch && matchesFilter;
-  });
+  // Filtro local apenas para "INCOMPLETE" (não tem índice de DB, mantemos client-side)
+  const filteredUsers =
+    filter === 'INCOMPLETE' ? users.filter((u) => !u.unit_number || !u.block_number) : users;
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Moradores</h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Gerencie os residentes cadastrados</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">
+            Gerencie os residentes cadastrados{' '}
+            {total > 0 && (
+              <span className="font-semibold text-primary">({total} total)</span>
+            )}
+          </p>
         </div>
       </div>
 
       <div className="bg-white dark:bg-surface-dark rounded-2xl border border-slate-200 dark:border-border-dark shadow-sm overflow-hidden">
         <div className="p-4 border-b border-slate-200 dark:border-border-dark flex flex-col sm:flex-row gap-4 justify-between bg-slate-50/50 dark:bg-surface-dark/50">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 size-5" />
-            <input 
-              type="text"
-              placeholder="Buscar por nome, unidade ou bloco..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 text-slate-900 dark:text-white"
-            />
-          </div>
           <div className="flex gap-2">
-            <button 
+            <button
               onClick={() => setFilter('ALL')}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filter === 'ALL' ? 'bg-primary text-white shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
             >
               Todos
             </button>
-            <button 
+            <button
               onClick={() => setFilter('INCOMPLETE')}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 ${filter === 'INCOMPLETE' ? 'bg-orange-500 text-white shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
             >
@@ -123,7 +104,7 @@ export default function AdminUsers() {
                         </div>
                         <div>
                           <p className="text-sm font-bold text-slate-900 dark:text-white">{user.full_name || 'Usuário Sem Nome'}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono text-[10px]">{user.id.substring(0,8)}...</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono text-[10px]">{user.id.substring(0, 8)}...</p>
                         </div>
                       </td>
                       <td className="p-4">
@@ -135,15 +116,13 @@ export default function AdminUsers() {
                         </div>
                       </td>
                       <td className="p-4">
-                        {(!user.unit_number || !user.block_number) ? (
+                        {!user.unit_number || !user.block_number ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400">
-                            <AlertTriangle size={14} />
-                            Faltam Dados
+                            <AlertTriangle size={14} /> Faltam Dados
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400">
-                            <ShieldCheck size={14} />
-                            Completo
+                            <ShieldCheck size={14} /> Completo
                           </span>
                         )}
                       </td>
@@ -159,9 +138,7 @@ export default function AdminUsers() {
             {/* Mobile Cards View */}
             <div className="md:hidden flex flex-col divide-y divide-slate-200 dark:divide-border-dark">
               {filteredUsers.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 dark:text-slate-400">
-                  Nenhum morador encontrado.
-                </div>
+                <div className="p-8 text-center text-slate-500 dark:text-slate-400">Nenhum morador encontrado.</div>
               ) : (
                 filteredUsers.map((user) => (
                   <div key={user.id} className="p-4 flex flex-col gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
@@ -173,15 +150,12 @@ export default function AdminUsers() {
                         <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{user.full_name || 'Usuário Sem Nome'}</p>
                         <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                           <Building size={12} />
-                          <span>
-                            {user.block_number ? `Blc ${user.block_number}` : '?'} - Und {user.unit_number || '?'}
-                          </span>
+                          <span>{user.block_number ? `Blc ${user.block_number}` : '?'} - Und {user.unit_number || '?'}</span>
                         </div>
                       </div>
                     </div>
-                    
                     <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/50 mt-1">
-                      {(!user.unit_number || !user.block_number) ? (
+                      {!user.unit_number || !user.block_number ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400">
                           <AlertTriangle size={14} /> Faltam Dados
                         </span>
@@ -190,14 +164,39 @@ export default function AdminUsers() {
                           <ShieldCheck size={14} /> Completo
                         </span>
                       )}
-                      <span className="text-xs text-slate-400 font-mono">
-                        {new Date(user.created_at).toLocaleDateString()}
-                      </span>
+                      <span className="text-xs text-slate-400 font-mono">{new Date(user.created_at).toLocaleDateString()}</span>
                     </div>
                   </div>
                 ))
               )}
             </div>
+
+            {/* Paginação server-side */}
+            {totalPages > 1 && (
+              <div className="p-4 border-t border-slate-200 dark:border-border-dark flex items-center justify-between text-sm text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-surface-dark/50">
+                <span>
+                  Página {page} de {totalPages} · {total} moradores
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    disabled={page === 1}
+                    onClick={() => setPage(page - 1)}
+                    className="p-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-all"
+                    aria-label="Página anterior"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <button
+                    disabled={page === totalPages}
+                    onClick={() => setPage(page + 1)}
+                    className="p-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-all"
+                    aria-label="Próxima página"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

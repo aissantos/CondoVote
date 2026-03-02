@@ -1,15 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, ShieldAlert, UserPlus, Search, Building, Loader2, Key, X } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, UserPlus, Search, Loader2, Key, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { createClient } from '@supabase/supabase-js';
-
-const tempSupabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY,
-  {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
-  }
-);
+import { useToast } from '../../hooks/useToast';
 
 type Profile = {
   id: string;
@@ -22,6 +14,7 @@ export default function SuperManagers() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const toast = useToast();
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -62,35 +55,42 @@ export default function SuperManagers() {
     if (!error) {
       fetchProfiles();
     } else {
-      alert('Erro ao atualizar permissão: ' + error.message);
+      toast.error('Erro ao atualizar permissão: ' + error.message);
     }
   };
 
   const handleCreateManager = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || formData.password.length < 6) return alert('Preencha nome, email e uma senha de 6 dígitos.');
+    if (!formData.name || !formData.email || formData.password.length < 8) {
+      toast.warning('Preencha nome, email e uma senha de ao menos 8 caracteres.');
+      return;
+    }
     setSubmitting(true);
-    
-    // Cria o usuário pelo cliente anônimo temporário sem deslogar o Root
-    const { error } = await tempSupabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-      options: {
-        data: {
-          full_name: formData.name,
-          role: 'ADMIN' // Força ser Administrador
-        }
-      }
-    });
 
-    setSubmitting(false);
-    
-    if (error) {
-      alert('Falha ao criar Gerente: ' + error.message);
-    } else {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const { data, error } = await supabase.functions.invoke('create-admin-user', {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+        body: {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
       setIsModalOpen(false);
       setFormData({ name: '', email: '', password: '' });
       fetchProfiles();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Falha ao criar administrador';
+      toast.error(msg);
+      console.error('[SuperManagers] Erro ao criar admin:', msg);
+    } finally {
+      setSubmitting(false);
     }
   };
 

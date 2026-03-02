@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, UserPlus, Ticket, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { validateCPF } from '../../lib/validators';
 
 export default function ResidentRegister() {
   const navigate = useNavigate();
@@ -47,8 +48,8 @@ export default function ResidentRegister() {
       }
       
       const cleanCpf = formData.cpf.replace(/\D/g, '');
-      if (cleanCpf.length !== 11) {
-          throw new Error('Preencha um CPF válido com 11 dígitos.');
+      if (!validateCPF(formData.cpf)) {
+        throw new Error('CPF inválido. Verifique os dígitos e tente novamente.');
       }
 
       if (!formData.inviteCode || formData.inviteCode.trim().length !== 6) {

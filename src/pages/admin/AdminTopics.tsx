@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, Clock, CheckCircle2, Loader2, Lock, ArrowLeft, Pap
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useToast } from '../../hooks/useToast';
 
 type Topic = {
   id: string;
@@ -17,6 +18,7 @@ type Topic = {
 export default function AdminTopics() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [searchParams] = useSearchParams();
   const assemblyId = searchParams.get('assembly_id');
   const assemblyTitle = searchParams.get('title');
@@ -74,7 +76,10 @@ export default function AdminTopics() {
   };
 
   const handleSaveTopic = async (status: 'DRAFT' | 'OPEN') => {
-    if (!formData.title) return alert('Título é obrigatório');
+    if (!formData.title) {
+      toast.warning('Título é obrigatório');
+      return;
+    }
     setSubmitting(true);
     
     try {
@@ -122,8 +127,9 @@ export default function AdminTopics() {
         setIsModalOpen(false);
         setEditingId(null);
         fetchTopics();
-    } catch (err: any) {
-        alert('Erro ao salvar pauta: ' + err.message);
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+        toast.error('Erro ao salvar pauta: ' + msg);
     } finally {
         setSubmitting(false);
     }

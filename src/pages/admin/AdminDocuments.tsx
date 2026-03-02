@@ -3,6 +3,7 @@ import { Upload, Trash2, Loader2, Lock, ArrowLeft, FileText, File as FileIcon, D
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useToast } from '../../hooks/useToast';
 
 type AssemblyDocument = {
   id: string;
@@ -15,6 +16,7 @@ type AssemblyDocument = {
 export default function AdminDocuments() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [searchParams] = useSearchParams();
   const assemblyId = searchParams.get('assembly_id');
   const assemblyTitle = searchParams.get('title');
@@ -90,9 +92,9 @@ export default function AdminDocuments() {
 
   const handleUploadAndSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title) return alert('O título do documento é obrigatório.');
-    if (!formData.file) return alert('O arquivo PDF é obrigatório.');
-    if (!assemblyId) return alert('Erro de contexto (Assembly ID ausente)');
+    if (!formData.title) { toast.warning('O título do documento é obrigatório.'); return; }
+    if (!formData.file) { toast.warning('O arquivo PDF é obrigatório.'); return; }
+    if (!assemblyId) { toast.error('Erro de contexto (Assembly ID ausente)'); return; }
 
     setSubmitting(true);
     setUploadProgress(10); // Start progress
@@ -137,9 +139,10 @@ export default function AdminDocuments() {
       // Success cleanup
       setIsModalOpen(false);
       fetchDocuments();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      alert('Erro durante o envio do documento: ' + err.message);
+      const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+      toast.error('Erro durante o envio do documento: ' + msg);
     } finally {
       setSubmitting(false);
       setUploadProgress(0);
@@ -167,8 +170,9 @@ export default function AdminDocuments() {
       }
 
       fetchDocuments();
-    } catch (err: any) {
-      alert('Erro ao excluir documento: ' + err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+      toast.error('Erro ao excluir documento: ' + msg);
     }
   };
 

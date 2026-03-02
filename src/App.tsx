@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ToastProvider } from './hooks/useToast';
 
 // Resident Pages
 import ResidentLogin from './pages/resident/Login';
@@ -39,10 +40,11 @@ import InstallPrompt from './components/InstallPrompt';
 export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <InstallPrompt />
-        <ReloadPrompt />
-        <BrowserRouter>
+      <ToastProvider>
+        <AuthProvider>
+          <InstallPrompt />
+          <ReloadPrompt />
+          <BrowserRouter>
         <Routes>
           {/* Rotas Públicas */}
           <Route path="/" element={<ResidentLogin />} />
@@ -89,8 +91,9 @@ export default function App() {
             <ProtectedRoute allowedRoles={['SUPERADMIN']}><SuperDashboard /></ProtectedRoute>
           } />
         </Routes>
-      </BrowserRouter>
-      </AuthProvider>
+        </BrowserRouter>
+        </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

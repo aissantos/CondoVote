@@ -23,20 +23,20 @@ export default defineConfig(({mode}) => {
           display: 'standalone',
           icons: [
             {
-              src: '/pwa-192x192.svg',
+              src: '/pwa-192x192.png',   // ← PNG: aceito como maskable pelo Chrome/Android
               sizes: '192x192',
-              type: 'image/svg+xml'
+              type: 'image/png'
             },
             {
-              src: '/pwa-512x512.svg',
+              src: '/pwa-512x512.png',
               sizes: '512x512',
-              type: 'image/svg+xml'
+              type: 'image/png'
             },
             {
-              src: '/pwa-512x512.svg',
+              src: '/pwa-512x512.png',
               sizes: '512x512',
-              type: 'image/svg+xml',
-              purpose: 'any maskable'
+              type: 'image/png',
+              purpose: 'any maskable'  // ← habilita ícone adaptativo no Android
             }
           ]
         },
@@ -60,6 +60,13 @@ export default defineConfig(({mode}) => {
     },
     build: {
       chunkSizeWarningLimit: 1200,
+      minify: 'terser',           // habilita terser para drop_console
+      terserOptions: {
+        compress: {
+          drop_console: true,     // remove todos os console.* em produção
+          drop_debugger: true,
+        },
+      },
       rollupOptions: {
         output: {
           manualChunks: {

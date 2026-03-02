@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Building2, Search, Plus, MapPin, Loader2, ImagePlus, UserCircle, X, Ticket, Copy, Check, Edit2, Trash2, Power, PowerOff } from 'lucide-react';
 import { useCondos } from '../../hooks/useCondos';
+import { useToast } from '../../hooks/useToast';
 
 export default function SuperCondos() {
   const { 
     condos, managers, loading, searchingCnpj, submitting, 
     fetchData, searchCNPJ, createCondo, updateCondo, deleteCondo, toggleCondoStatus 
   } = useCondos();
+  const toast = useToast();
   
   const [search, setSearch] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -35,7 +37,7 @@ export default function SuperCondos() {
         ...data
       }));
     } catch (err) {
-      if (err instanceof Error) alert(err.message);
+      if (err instanceof Error) toast.error(err.message);
     }
   };
 
@@ -89,8 +91,9 @@ export default function SuperCondos() {
     if (confirm(`Atenção: A exclusão de [${name}] é permanente e removerá todos os dados atrelados (Pautas, Votos, Moradores). Deseja seguir?`)) {
       try {
         await deleteCondo(id);
-      } catch (err: any) {
-        alert('Erro ao excluir: ' + err.message);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+        toast.error('Erro ao excluir: ' + msg);
       }
     }
   };
@@ -98,8 +101,9 @@ export default function SuperCondos() {
   const handleToggle = async (id: string, status: boolean) => {
     try {
       await toggleCondoStatus(id, status);
-    } catch (err: any) {
-      alert('Erro ao alterar status: ' + err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+      toast.error('Erro ao alterar status: ' + msg);
     }
   };
 
@@ -122,7 +126,7 @@ export default function SuperCondos() {
       setLogoFile(null);
       setLogoPreview(null);
     } catch (err) {
-      if (err instanceof Error) alert('Erro ao salvar condomínio: ' + err.message);
+      if (err instanceof Error) toast.error('Erro ao salvar condomínio: ' + err.message);
     }
   };
 
