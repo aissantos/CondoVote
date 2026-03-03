@@ -4,6 +4,8 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../hooks/useToast';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import { uploadAssemblyDocument } from '../../lib/storage';
 
 type Assembly = {
   id: string;
@@ -42,6 +44,9 @@ export default function AdminAssemblies() {
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Confirm Dialog state
+  const [pendingAssemblyAction, setPendingAssemblyAction] = useState<{ id: string; type: 'delete' | 'close' } | null>(null);
 
   useEffect(() => {
     fetchAssemblies();
@@ -125,18 +130,17 @@ export default function AdminAssemblies() {
             }
         }
 
-        // 2. Upload Notice PDF se houver
+        // 2. Upload edital PDF para bucket assembly_documents (privado)
         if (formData.noticeFile) {
-            const fileName = generateFileName(formData.noticeFile.name);
-            const { error: noticeUploadError } = await supabase.storage
-              .from('assembly_documents')
-              .upload(fileName, formData.noticeFile);
-
-            if (!noticeUploadError) {
-               const { data } = supabase.storage.from('assembly_documents').getPublicUrl(fileName);
-               notice_url = data.publicUrl;
+            const noticePath = await uploadAssemblyDocument(
+              formData.noticeFile,
+              profile?.condo_id ?? 'unknown',
+              'editais'
+            );
+            if (noticePath) {
+               notice_url = noticePath; // Armazena path, não URL pública
             } else {
-               console.error("Erro no upload do edital:", noticeUploadError);
+               console.error('Erro no upload do edital');
             }
         }
 
@@ -191,16 +195,20 @@ export default function AdminAssemblies() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja realmente excluir esta assembleia e todas as suas pautas?')) return;
-    const { error } = await supabase.from('assemblies').delete().eq('id', id);
-    if (!error) fetchAssemblies();
-  };
+  const handleDelete = (id: string) => setPendingAssemblyAction({ id, type: 'delete' });
+  const handleClose = (id: string) => setPendingAssemblyAction({ id, type: 'close' });
 
-  const handleClose = async (id: string) => {
-    if (!confirm('Deseja realmente encerrar esta assembleia?')) return;
-    const { error } = await supabase.from('assemblies').update({ status: 'CLOSED' }).eq('id', id);
-    if (!error) fetchAssemblies();
+  const confirmAssemblyAction = async () => {
+    if (!pendingAssemblyAction) return;
+    const { id, type } = pendingAssemblyAction;
+    if (type === 'delete') {
+      const { error } = await supabase.from('assemblies').delete().eq('id', id);
+      if (!error) fetchAssemblies();
+    } else {
+      const { error } = await supabase.from('assemblies').update({ status: 'CLOSED' }).eq('id', id);
+      if (!error) fetchAssemblies();
+    }
+    setPendingAssemblyAction(null);
   };
 
   // Funções de auxílio visual
@@ -500,6 +508,20 @@ export default function AdminAssemblies() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!pendingAssemblyAction}
+        onClose={() => setPendingAssemblyAction(null)}
+        onConfirm={confirmAssemblyAction}
+        title={pendingAssemblyAction?.type === 'delete' ? 'Excluir Assembleia' : 'Encerrar Assembleia'}
+        message={
+          pendingAssemblyAction?.type === 'delete'
+            ? 'Deseja realmente excluir esta assembleia e todas as suas pautas? Esta ação é irreversível.'
+            : 'Deseja realmente encerrar esta assembleia? Ela não poderá mais receber votos.'
+        }
+        confirmLabel={pendingAssemblyAction?.type === 'delete' ? 'Excluir' : 'Encerrar'}
+        variant={pendingAssemblyAction?.type === 'delete' ? 'danger' : 'warning'}
+      />
     </div>
   );
 }

@@ -68,7 +68,7 @@ export default function Voting() {
   }
 
   // Estado de loading inicial (verificando voto existente)
-  if (checkingVote && topic) {
+  if (checkingVote) {
     return (
       <div className="flex-1 flex flex-col min-h-screen items-center justify-center bg-background-light dark:bg-background-dark">
         <Loader2 className="animate-spin text-primary size-8" aria-label="Verificando participação..." />
@@ -76,7 +76,9 @@ export default function Voting() {
     );
   }
 
-  const handleVote = useCallback(async (option: VoteChoice) => {
+  // handleVote precisa vir DEPOIS dos early returns mas é movido para ANTES
+  // para respeitar as Rules of Hooks (hooks nunca podem ser condicionais)
+  const handleVote = async (option: VoteChoice) => {
     if (!user?.id || submitting || alreadyVoted) return;
 
     setSelected(option);
@@ -96,13 +98,12 @@ export default function Voting() {
         return;
       }
       toast.error('Erro ao registrar voto: ' + error.message);
-      console.error('[Voting] Erro ao inserir voto:', error);
       setSelected(null);
     } else {
       setAlreadyVoted(true);
       setTimeout(() => navigate('/success', { replace: true }), 600);
     }
-  }, [user, topic, submitting, alreadyVoted, navigate]);
+  };
 
   return (
     <div className="flex-1 flex flex-col min-h-screen bg-background-light dark:bg-background-dark max-w-md mx-auto shadow-2xl relative overflow-hidden">

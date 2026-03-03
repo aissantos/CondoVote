@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useToast } from '../../hooks/useToast';
 import Modal from '../../components/Modal';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 type Topic = {
   id: string;
@@ -36,6 +37,9 @@ export default function AdminTopics() {
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Confirm Dialog state
+  const [pendingAction, setPendingAction] = useState<{ id: string; type: 'delete' | 'close' } | null>(null);
 
   useEffect(() => {
     if (assemblyId) {
@@ -136,16 +140,20 @@ export default function AdminTopics() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja realmente excluir esta pauta?')) return;
-    const { error } = await supabase.from('topics').delete().eq('id', id);
-    if (!error) fetchTopics();
-  };
+  const handleDelete = (id: string) => setPendingAction({ id, type: 'delete' });
+  const handleCloseTopic = (id: string) => setPendingAction({ id, type: 'close' });
 
-  const handleCloseTopic = async (id: string) => {
-    if (!confirm('Deseja realmente encerrar a votação desta pauta?')) return;
-    const { error } = await supabase.from('topics').update({ status: 'CLOSED' }).eq('id', id);
-    if (!error) fetchTopics();
+  const confirmAction = async () => {
+    if (!pendingAction) return;
+    const { id, type } = pendingAction;
+    if (type === 'delete') {
+      const { error } = await supabase.from('topics').delete().eq('id', id);
+      if (!error) fetchTopics();
+    } else {
+      const { error } = await supabase.from('topics').update({ status: 'CLOSED' }).eq('id', id);
+      if (!error) fetchTopics();
+    }
+    setPendingAction(null);
   };
 
   // Funções de auxílio visual
@@ -327,6 +335,19 @@ export default function AdminTopics() {
           </button>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={!!pendingAction}
+        onClose={() => setPendingAction(null)}
+        onConfirm={confirmAction}
+        title={pendingAction?.type === 'delete' ? 'Excluir Pauta' : 'Encerrar Votação'}
+        message={
+          pendingAction?.type === 'delete'
+            ? 'Deseja realmente excluir esta pauta? Esta ação não pode ser desfeita.'
+            : 'Deseja realmente encerrar a votação desta pauta?'
+        }
+        confirmLabel={pendingAction?.type === 'delete' ? 'Excluir' : 'Encerrar'}
+      />
     </div>
   );
 }

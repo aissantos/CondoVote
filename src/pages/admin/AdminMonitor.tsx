@@ -3,6 +3,7 @@ import { Search, Filter, Download, StopCircle, RefreshCw, Loader2, AlertCircle }
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../hooks/useToast';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 type Participant = {
   id: string;
@@ -20,6 +21,7 @@ export default function AdminMonitor() {
   const [activeTopic, setActiveTopic] = useState<{ id: string, title: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [confirmStop, setConfirmStop] = useState(false);
   
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
@@ -119,11 +121,13 @@ export default function AdminMonitor() {
   const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
   const displayed = filteredParticipants.slice((page-1)*itemsPerPage, page*itemsPerPage);
 
-  const handleStopVoting = async () => {
+  const handleStopVoting = () => {
     if (!activeTopic) return;
-    if (!confirm('Deseja realmente ENCERRAR a votação desta pauta?')) return;
-    
-    // Encerrar a pauta
+    setConfirmStop(true);
+  };
+
+  const confirmStopVoting = async () => {
+    if (!activeTopic) return;
     const { error } = await supabase
       .from('topics')
       .update({ status: 'CLOSED' })
@@ -131,6 +135,7 @@ export default function AdminMonitor() {
 
     if (error) toast.error('Erro ao encerrar pauta: ' + error.message);
     else fetchMonitorData();
+    setConfirmStop(false);
   };
 
   if (loading) {
@@ -256,6 +261,16 @@ export default function AdminMonitor() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmStop}
+        onClose={() => setConfirmStop(false)}
+        onConfirm={confirmStopVoting}
+        title="Encerrar Votação"
+        message={`Deseja realmente ENCERRAR a votação da pauta "${activeTopic?.title}"? Esta ação não pode ser desfeita.`}
+        confirmLabel="Encerrar"
+        variant="warning"
+      />
     </div>
   );
 }

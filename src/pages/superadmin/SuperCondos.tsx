@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Building2, Search, Plus, MapPin, Loader2, ImagePlus, UserCircle, X, Ticket, Copy, Check, Edit2, Trash2, Power, PowerOff } from 'lucide-react';
 import { useCondos } from '../../hooks/useCondos';
 import { useToast } from '../../hooks/useToast';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 export default function SuperCondos() {
   const { 
@@ -12,6 +13,9 @@ export default function SuperCondos() {
   
   const [search, setSearch] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  // Confirm Delete state
+  const [pendingDeleteCondo, setPendingDeleteCondo] = useState<{ id: string; name: string } | null>(null);
   
   // Modal state para formulário GUI UI View
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -87,14 +91,16 @@ export default function SuperCondos() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (confirm(`Atenção: A exclusão de [${name}] é permanente e removerá todos os dados atrelados (Pautas, Votos, Moradores). Deseja seguir?`)) {
-      try {
-        await deleteCondo(id);
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Erro desconhecido';
-        toast.error('Erro ao excluir: ' + msg);
-      }
+  const handleDelete = (id: string, name: string) => setPendingDeleteCondo({ id, name });
+
+  const confirmDeleteCondo = async () => {
+    if (!pendingDeleteCondo) return;
+    setPendingDeleteCondo(null);
+    try {
+      await deleteCondo(pendingDeleteCondo.id);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+      toast.error('Erro ao excluir: ' + msg);
     }
   };
 
@@ -414,6 +420,14 @@ export default function SuperCondos() {
         </div>
       )}
 
+      <ConfirmDialog
+        open={!!pendingDeleteCondo}
+        onClose={() => setPendingDeleteCondo(null)}
+        onConfirm={confirmDeleteCondo}
+        title="Excluir Condomínio"
+        message={`Atenção: A exclusão de [${pendingDeleteCondo?.name}] é permanente e removerá todos os dados atrelados (Pautas, Votos, Moradores). Esta ação é irreversível.`}
+        confirmLabel="Excluir Permanentemente"
+      />
     </div>
   );
 }

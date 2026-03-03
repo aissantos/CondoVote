@@ -4,6 +4,8 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useToast } from '../../hooks/useToast';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import { uploadAssemblyDocument, getSignedDocumentUrl } from '../../lib/storage';
 
 type AssemblyDocument = {
   id: string;
@@ -27,6 +29,9 @@ export default function AdminDocuments() {
   const [submitting, setSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [fileError, setFileError] = useState<string | null>(null);
+
+  // Confirm Dialog state
+  const [pendingDoc, setPendingDoc] = useState<AssemblyDocument | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({ 
@@ -97,36 +102,25 @@ export default function AdminDocuments() {
     if (!assemblyId) { toast.error('Erro de contexto (Assembly ID ausente)'); return; }
 
     setSubmitting(true);
-    setUploadProgress(10); // Start progress
+    setUploadProgress(10);
 
     try {
-      // 1. Upload file to Supabase Storage
-      const fileName = generateFileName(formData.file.name);
-      
-      const { error: uploadError } = await supabase.storage
-        .from('assembly_documents')
-        .upload(fileName, formData.file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+      // 1. Upload file → retorna o filePath relativo (para URL assinada futura)
+      const filePath = await uploadAssemblyDocument(
+        formData.file,
+        profile?.condo_id ?? 'unknown',
+        assemblyId
+      );
 
-      if (uploadError) throw uploadError;
+      if (!filePath) throw new Error('Falha no upload do arquivo.');
       setUploadProgress(60);
 
-      // 2. Get Public URL
-      const { data: publicUrlData } = supabase.storage
-        .from('assembly_documents')
-        .getPublicUrl(fileName);
-
-      if (!publicUrlData) throw new Error("Erro ao gerar link público do arquivo.");
-      setUploadProgress(80);
-
-      // 3. Save Record in Database
+      // 2. Salvar registro no banco com o filePath (não URL pública)
       const { error: dbError } = await supabase.from('assembly_documents').insert([
         {
           title: formData.title,
           document_type: formData.document_type,
-          file_url: publicUrlData.publicUrl,
+          file_url: filePath,          // Armazena path, não URL pública
           created_by: user?.id,
           condo_id: profile?.condo_id,
           assembly_id: assemblyId
@@ -136,11 +130,9 @@ export default function AdminDocuments() {
       if (dbError) throw dbError;
       setUploadProgress(100);
 
-      // Success cleanup
       setIsModalOpen(false);
       fetchDocuments();
     } catch (err: unknown) {
-      console.error(err);
       const msg = err instanceof Error ? err.message : 'Erro desconhecido';
       toast.error('Erro durante o envio do documento: ' + msg);
     } finally {
@@ -149,16 +141,17 @@ export default function AdminDocuments() {
     }
   };
 
-  const handleDelete = async (doc: AssemblyDocument) => {
-    if (!confirm(`Deseja realmente excluir o documento "${doc.title}"? O arquivo será deletado permanentemente.`)) return;
+  const handleDelete = (doc: AssemblyDocument) => setPendingDoc(doc);
+
+  const confirmDelete = async () => {
+    if (!pendingDoc) return;
+    const doc = pendingDoc;
+    setPendingDoc(null);
     
     try {
-      // 1. Delete from Database
       const { error: dbError } = await supabase.from('assembly_documents').delete().eq('id', doc.id);
       if (dbError) throw dbError;
 
-      // 2. Try delete from storage (extract path from public URL)
-      // publicUrl format: https://[project].supabase.co/storage/v1/object/public/assembly_documents/[path]
       try {
         const pathParts = doc.file_url.split('/assembly_documents/');
         if (pathParts.length > 1) {
@@ -264,14 +257,21 @@ export default function AdminDocuments() {
                      </div>
                   </div>
 
-                  <a 
-                    href={doc.file_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const url = await getSignedDocumentUrl(doc.file_url);
+                      if (url) {
+                        window.open(url, '_blank', 'noopener noreferrer');
+                      } else {
+                        toast.error('Não foi possível acessar o documento. Tente novamente.');
+                      }
+                    }}
                     className="mt-auto flex items-center justify-center gap-2 w-full py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-bold transition-colors"
                   >
                     <Download size={16} /> Visualizar PDF
-                  </a>
+                  </button>
+
                 </div>
               ))
             )}
@@ -366,6 +366,15 @@ export default function AdminDocuments() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!pendingDoc}
+        onClose={() => setPendingDoc(null)}
+        onConfirm={confirmDelete}
+        title="Excluir Documento"
+        message={`Deseja realmente excluir o documento "${pendingDoc?.title}"? O arquivo será deletado permanentemente e não poderá ser recuperado.`}
+        confirmLabel="Excluir Permanentemente"
+      />
     </div>
   );
 }

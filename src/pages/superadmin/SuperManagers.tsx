@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ShieldCheck, ShieldAlert, UserPlus, Search, Loader2, Key, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../hooks/useToast';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 type Profile = {
   id: string;
@@ -21,6 +22,9 @@ export default function SuperManagers() {
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
   const [submitting, setSubmitting] = useState(false);
 
+  // Confirm Dialog state
+  const [pendingToggle, setPendingToggle] = useState<{ userId: string; currentRole: string } | null>(null);
+
   useEffect(() => {
     fetchProfiles();
   }, []);
@@ -39,13 +43,14 @@ export default function SuperManagers() {
     setLoading(false);
   };
 
-  const handleToggleRole = async (userId: string, currentRole: string) => {
-    const newRole = currentRole === 'ADMIN' ? 'RESIDENT' : 'ADMIN';
-    const confirmMessage = currentRole === 'ADMIN' 
-      ? 'Deseja REBAIXAR este Síndico para Morador?' 
-      : 'Deseja PROMOVER este Morador a Síndico (Privilégio total no Condomínio)?';
+  const handleToggleRole = (userId: string, currentRole: string) => {
+    setPendingToggle({ userId, currentRole });
+  };
 
-    if (!confirm(confirmMessage)) return;
+  const confirmToggle = async () => {
+    if (!pendingToggle) return;
+    const { userId, currentRole } = pendingToggle;
+    const newRole = currentRole === 'ADMIN' ? 'RESIDENT' : 'ADMIN';
 
     const { error } = await supabase
       .from('profiles')
@@ -53,10 +58,12 @@ export default function SuperManagers() {
       .eq('id', userId);
 
     if (!error) {
+      toast.success(`Permissão alterada para ${newRole} com sucesso.`);
       fetchProfiles();
     } else {
       toast.error('Erro ao atualizar permissão: ' + error.message);
     }
+    setPendingToggle(null);
   };
 
   const handleCreateManager = async (e: React.FormEvent) => {
@@ -258,6 +265,20 @@ export default function SuperManagers() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!pendingToggle}
+        onClose={() => setPendingToggle(null)}
+        onConfirm={confirmToggle}
+        title="Confirmar alteração de permissão"
+        message={
+          pendingToggle?.currentRole === 'ADMIN'
+            ? 'Deseja REBAIXAR este Síndico para Morador?'
+            : 'Deseja PROMOVER este Morador a Síndico? (Privilégio total no Condomínio)'
+        }
+        confirmLabel={pendingToggle?.currentRole === 'ADMIN' ? 'Revogar' : 'Promover'}
+        variant={pendingToggle?.currentRole === 'ADMIN' ? 'danger' : 'warning'}
+      />
     </div>
   );
 }

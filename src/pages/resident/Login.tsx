@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Building2, LogIn, Mail } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRateLimit } from '../../hooks/useRateLimit';
 
 export default function ResidentLogin() {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ export default function ResidentLogin() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { check: checkRateLimit } = useRateLimit(5, 60_000);
 
   // Redireciona usuários já logados
   React.useEffect(() => {
@@ -21,6 +23,13 @@ export default function ResidentLogin() {
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const { allowed, waitSeconds } = checkRateLimit();
+    if (!allowed) {
+      setError(`Muitas tentativas. Aguarde ${waitSeconds}s antes de tentar novamente.`);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     
