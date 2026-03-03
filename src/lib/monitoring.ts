@@ -5,19 +5,24 @@
 
 import * as Sentry from '@sentry/react';
 
-const DSN = import.meta.env.VITE_SENTRY_DSN as string | undefined;
+// DSN: variável de ambiente tem prioridade sobre o fallback hardcoded
+const DSN =
+  (import.meta.env.VITE_SENTRY_DSN as string | undefined) ||
+  'https://3dc47e375bd81fe0c6b8ce201a6f716a@o4510449042325504.ingest.us.sentry.io/4510982976045056';
+
 const IS_PROD = import.meta.env.PROD;
 
 /** Inicializa o Sentry. Chamar antes do ReactDOM.render em main.tsx */
 export function initMonitoring() {
-  if (!DSN || !IS_PROD) return; // Silencioso em dev ou sem DSN
+  if (!DSN) return; // Garante que DSN existe
 
   Sentry.init({
     dsn: DSN,
-    environment: 'production',
-    // Amostragem: 10% das sessões, 100% dos erros
-    tracesSampleRate: 0.1,
-    replaysSessionSampleRate: 0.05,
+    environment: IS_PROD ? 'production' : 'development',
+    sendDefaultPii: true, // Coleta IP e dados de usuário autenticado
+    // Amostragem: 10% de sessões normais, 100% em sessões com erro
+    tracesSampleRate: IS_PROD ? 0.1 : 0,
+    replaysSessionSampleRate: IS_PROD ? 0.05 : 0,
     replaysOnErrorSampleRate: 1.0,
     integrations: [
       Sentry.browserTracingIntegration(),
@@ -30,12 +35,13 @@ export function initMonitoring() {
       'Failed to fetch',
     ],
     beforeSend(event) {
-      // Não capturar em desenvolvimento
+      // Não capturar em desenvolvimento local (sem build de produção)
       if (import.meta.env.DEV) return null;
       return event;
     },
   });
 }
+
 
 /** Registra o usuário autenticado no contexto do Sentry */
 export function identifyUser(userId: string, role: string) {
