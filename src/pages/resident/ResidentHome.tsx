@@ -4,7 +4,6 @@ import { Menu, Bell, ChevronRight, LogIn, Building2, Calendar, Clock, ArrowRight
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import ThemeToggle from '../../components/ThemeToggle';
-import * as Sentry from '@sentry/react';
 
 type Assembly = {
   id: string;
@@ -335,18 +334,7 @@ export default function ResidentHome() {
             </div>
           )}
         </div>
-        {/* ⚠️ SENTRY TEST — Remover após verificar no dashboard */}
-        <div className="px-4 pb-6">
-          <button
-            onClick={() => {
-              throw new Error('Sentry Test — CondoVote ResidentHome');
-            }}
-            className="w-full py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-sm transition-colors"
-          >
-            🐛 Testar Sentry (remover após verificar)
-          </button>
-        </div>
-
+        
       </div>
     </div>
   );
