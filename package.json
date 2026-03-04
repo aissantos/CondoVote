@@ -1,7 +1,7 @@
 {
   "name": "react-example",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,15 +9,18 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit",
-    "validate": "npm run typecheck",
+    "lint:ts": "tsc --noEmit",
+    "lint:es": "eslint src --ext .ts,.tsx --max-warnings 0",
+    "lint": "npm run lint:ts && npm run lint:es",
+    "validate": "npm run lint && npm run test:coverage",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "gen:types": "supabase gen types typescript --project-id ufaqgarxivrfqylifpvg --schema public > src/lib/database.types.ts",
-    "test:e2e": "playwright test"
-
+    "test:e2e": "playwright test",
+    "prepare": "husky",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
@@ -48,9 +51,17 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
     "@vitest/coverage-v8": "^4.0.18",
     "autoprefixer": "^10.4.21",
+    "eslint": "^9.39.3",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "husky": "^9.1.7",
     "jsdom": "^28.1.0",
+    "lint-staged": "^16.3.2",
     "sharp": "^0.34.5",
     "tailwindcss": "^4.1.14",
     "terser": "^5.46.0",
@@ -58,6 +69,22 @@
     "vite": "^6.2.0",
     "vite-plugin-pwa": "^1.2.0",
     "vitest": "^4.0.18",
-    "workbox-window": "^7.4.0"
+    "workbox-window": "^7.4.0",
+    "storybook": "^10.2.15",
+    "@storybook/react-vite": "^10.2.15",
+    "@chromatic-com/storybook": "^5.0.1",
+    "@storybook/addon-vitest": "^10.2.15",
+    "@storybook/addon-a11y": "^10.2.15",
+    "@storybook/addon-docs": "^10.2.15",
+    "@storybook/addon-onboarding": "^10.2.15",
+    "eslint-plugin-storybook": "^10.2.15",
+    "playwright": "^1.58.2",
+    "@vitest/browser-playwright": "^4.0.18"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": [
+      "eslint --fix",
+      "tsc --noEmit"
+    ]
   }
 }
