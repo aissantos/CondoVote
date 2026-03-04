@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Building2, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 

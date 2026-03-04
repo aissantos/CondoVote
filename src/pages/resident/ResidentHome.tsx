@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Bell, ChevronRight, LogIn, Building2, Calendar, Clock, ArrowRight } from 'lucide-react';
+import { ChevronRight, LogIn, Building2, Calendar, Clock, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -10,7 +10,7 @@ type Assembly = {
   title: string;
   description: string;
   assembly_date: string;
-  type: 'AGO' | 'AGE'; // Changed from assembly_type
+  assembly_type: 'AGO' | 'AGE';
   status: 'OPEN' | 'CLOSED' | 'DRAFT';
   format?: 'PRESENCIAL' | 'REMOTO' | 'HIBRIDO';
   first_call_time?: string;
@@ -86,7 +86,7 @@ export default function ResidentHome() {
         .limit(1);
 
       if (openAssemblies && openAssemblies.length > 0) {
-        setActiveAssembly(openAssemblies[0]);
+        setActiveAssembly(openAssemblies[0] as unknown as Assembly);
       }
 
       // Fetch Closed Assemblies
@@ -98,7 +98,7 @@ export default function ResidentHome() {
         .order('assembly_date', { ascending: false })
         .limit(3);
 
-      if (pastAssemblies) setClosedAssemblies(pastAssemblies);
+      if (pastAssemblies) setClosedAssemblies(pastAssemblies as unknown as Assembly[]);
     };
 
     fetchDashboardData();
@@ -111,6 +111,15 @@ export default function ResidentHome() {
       navigate('/check-in');
     }
   };
+
+  const prefetchTopics = useCallback(async () => {
+    if (!profile?.condo_id || !activeAssembly) return;
+    // Fetch implicitly caches in Supabase/React layer momentarily
+    supabase.from('topics').select('*')
+      .eq('condo_id', profile.condo_id)
+      .neq('status', 'DRAFT')
+      .then(() => {}); 
+  }, [profile?.condo_id, activeAssembly]);
 
 
 
@@ -161,7 +170,7 @@ export default function ResidentHome() {
           <h3 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Assembleia de Hoje</h3>
           {activeAssembly ? (
             <span className="bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-200 dark:border-green-500/20 uppercase tracking-wider">
-              {activeAssembly.type} Em andamento
+              {activeAssembly.assembly_type} Em andamento
             </span>
           ) : (
              <span className="bg-slate-100 dark:bg-slate-500/10 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-500/20 uppercase tracking-wider">
@@ -198,7 +207,7 @@ export default function ResidentHome() {
                   </div>
                   <div className="flex flex-col items-end gap-2">
                      <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full border border-white/30 uppercase tracking-widest shadow-sm">
-                       {activeAssembly.type}
+                       {activeAssembly.assembly_type}
                      </span>
                      {activeAssembly.format && (
                        <span className="bg-black/30 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-white/10 uppercase tracking-wider">
@@ -232,6 +241,8 @@ export default function ResidentHome() {
                   )}
                   
                   <button 
+                    onMouseEnter={prefetchTopics}
+                    onClick={handleAssemblyClick}
                     className="mt-2 w-full flex items-center justify-center gap-2 bg-white text-primary rounded-xl py-3 font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all text-sm group"
                   >
                     Confirmar Presença
@@ -282,6 +293,7 @@ export default function ResidentHome() {
                 
                 <div className="pt-2">
                   <button 
+                    onMouseEnter={prefetchTopics}
                     onClick={handleAssemblyClick}
                     disabled={!activeAssembly && isCheckedIn}
                     className={`w-full cursor-pointer flex items-center justify-center rounded-xl h-16 text-white text-base font-bold leading-normal transition-all shadow-xl active:scale-[0.98] ${
@@ -320,7 +332,7 @@ export default function ResidentHome() {
                       {new Date(assembly.assembly_date + 'T12:00:00').toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'})}
                     </span>
                   </div>
-                  <h4 className="text-slate-900 dark:text-white text-base font-bold mb-1 truncate">[{assembly.type}] {assembly.title}</h4>
+                  <h4 className="text-slate-900 dark:text-white text-base font-bold mb-1 truncate">[{assembly.assembly_type}] {assembly.title}</h4>
                   <p className="text-slate-500 dark:text-text-secondary text-xs line-clamp-1 opacity-70">{assembly.description}</p>
                 </div>
                 <div className="flex flex-col items-center justify-center text-primary group-hover:translate-x-1 transition-transform">

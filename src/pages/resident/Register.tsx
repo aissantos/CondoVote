@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { validateCPF } from '../../lib/validators';
 import { useRateLimit } from '../../hooks/useRateLimit';
 import { FormField } from '../../components/ui/FormField';
+import { recordConsent } from '../../services/consent.service';
 
 // Classe base de input reutilizada nos campos deste formulário
 const inputCls =
@@ -73,7 +74,7 @@ export default function ResidentRegister() {
         throw new Error('Código de convite inválido ou expirado. Peça um novo convite ao seu síndico.');
       }
 
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.senha,
         options: {
@@ -88,6 +89,11 @@ export default function ResidentRegister() {
       });
 
       if (signUpError) throw signUpError;
+      
+      if (data?.user) {
+        await recordConsent(data.user.id, 'PRIVACY_POLICY', '2026-03-01');
+        await recordConsent(data.user.id, 'TERMS_OF_USE', '2026-03-01');
+      }
 
       navigate('/resident/home');
     } catch (err) {

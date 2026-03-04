@@ -87,7 +87,7 @@ export default defineConfig(({mode}) => {
     },
     build: {
       sourcemap: true,        // Necessário para Sentry mapear erros ao código original
-      chunkSizeWarningLimit: 1200,
+      chunkSizeWarningLimit: 800,
       minify: 'terser',           // habilita terser para drop_console
       terserOptions: {
         compress: {
@@ -101,7 +101,10 @@ export default defineConfig(({mode}) => {
             'react-vendor': ['react', 'react-dom', 'react-router-dom'],
             'supabase-vendor': ['@supabase/supabase-js'],
             'chart-vendor': ['recharts'],
-            'ui-vendor': ['lucide-react', 'motion']
+            'ui-vendor': ['lucide-react'],
+            'motion-vendor': ['motion'],
+            'pdf-vendor': ['jspdf', 'html2canvas'],
+            'sentry-vendor': ['@sentry/react']
           }
         }
       }

@@ -21,10 +21,6 @@ export default function Topics() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'ALL' | 'UNVOTED'>('ALL');
 
-  useEffect(() => {
-    fetchTopics();
-  }, [user]);
-
   const fetchTopics = async () => {
     if (!user) return;
     setLoading(true);
@@ -43,7 +39,7 @@ export default function Topics() {
     }
 
     // 2. Fetch user votes to check which ones they already voted on
-    const { data: votesData, error: votesError } = await supabase
+    const { data: votesData } = await supabase
       .from('votes')
       .select('topic_id')
       .eq('user_id', user.id);
@@ -55,9 +51,14 @@ export default function Topics() {
       user_voted: votedTopicIds.has(topic.id)
     }));
 
-    setTopics(enrichedTopics);
+    setTopics(enrichedTopics as Topic[]);
     setLoading(false);
   };
+
+  useEffect(() => {
+    fetchTopics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const filteredTopics = topics.filter(topic => {
     if (filter === 'UNVOTED') {

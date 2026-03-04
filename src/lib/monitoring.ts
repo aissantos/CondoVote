@@ -20,15 +20,19 @@ export function initMonitoring() {
     dsn: DSN,
     environment: IS_PROD ? 'production' : 'development',
     sendDefaultPii: true,
-    // Tracing — 100% em produção (ajustar para 0.1 em alto volume de tráfego)
-    tracesSampleRate: 1.0,
+    // Custom sampling baseado em transação em vez de rate global fixo
+    tracesSampler: (context) => {
+      if (context.transactionContext?.name?.includes('/voting')) return 1.0;
+      if (context.parentSampled) return 1.0;
+      return IS_PROD ? 0.1 : 1.0;
+    },
     tracePropagationTargets: [
       'localhost',
       /^https:\/\/ufaqgarxivrfqylifpvg\.supabase\.co/,
       /^https:\/\/condovote\.vercel\.app/,
     ],
     // Session Replay
-    replaysSessionSampleRate: 0.1,
+    replaysSessionSampleRate: 0.05,
     replaysOnErrorSampleRate: 1.0,
     integrations: [
       Sentry.browserTracingIntegration(),

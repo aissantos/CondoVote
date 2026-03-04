@@ -20,11 +20,28 @@ vi.mock('react-router-dom', async (importOriginal) => {
   };
 });
 
-vi.mock('../../lib/supabase', () => ({
-  supabase: {
-    from: vi.fn(),
-    auth: { getUser: vi.fn() },
-  },
+vi.mock('../../lib/supabase', () => {
+  const chain = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data: { unit_number: '101', block_number: 'A', full_name: 'Teste' }, error: null })
+  };
+  return {
+    supabase: {
+      from: vi.fn(() => chain),
+      auth: { getUser: vi.fn() },
+      storage: { from: vi.fn() }
+    }
+  };
+});
+
+vi.mock('../../services/votes.service', () => ({
+  getExistingVote: vi.fn(),
+  castVote: vi.fn(),
+}));
+
+vi.mock('../../services/topics.service', () => ({
+  getTopicWithSignedAttachment: vi.fn().mockResolvedValue({ data: null, error: null })
 }));
 
 vi.mock('../../contexts/AuthContext', () => ({
@@ -41,7 +58,7 @@ vi.mock('../../hooks/useToast', () => ({
 
 // --- Importar após os mocks ---
 import Voting from './Voting';
-import { supabase } from '../../lib/supabase';
+import { getExistingVote, castVote } from '../../services/votes.service';
 
 // --- Helpers ---
 
@@ -58,27 +75,17 @@ const renderVoting = (topic = mockTopic) =>
     </MemoryRouter>
   );
 
-type MockChain = {
-  select: ReturnType<typeof vi.fn>;
-  eq: ReturnType<typeof vi.fn>;
-  maybeSingle: ReturnType<typeof vi.fn>;
-  single: ReturnType<typeof vi.fn>;
-  insert: ReturnType<typeof vi.fn>;
-};
+const setupServiceMocks = (voteExists: boolean) => {
+  if (voteExists) {
+    // @ts-ignore
+    getExistingVote.mockResolvedValue({ data: { id: 'vote-existing', choice: 'SIM' }, error: null });
+  } else {
+    // @ts-ignore
+    getExistingVote.mockResolvedValue({ data: null, error: null });
+  }
 
-const mockSupabaseChain = (voteExists: boolean, insertError: unknown = null): MockChain => {
-  const chain: MockChain = {
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    maybeSingle: vi.fn().mockResolvedValue({
-      data: voteExists ? { id: 'vote-existing', choice: 'SIM' } : null,
-      error: null,
-    }),
-    single: vi.fn().mockResolvedValue({ data: { full_name: 'Teste', unit_number: '101', block_number: 'A' }, error: null }),
-    insert: vi.fn().mockResolvedValue({ error: insertError }),
-  };
-  (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(chain);
-  return chain;
+  // @ts-ignore
+  castVote.mockResolvedValue({ data: { id: 'new-vote', choice: 'SIM' }, error: null });
 };
 
 // --- Testes ---
@@ -89,7 +96,7 @@ describe('Voting', () => {
   });
 
   it('redireciona para /success imediatamente se usuário já votou', async () => {
-    mockSupabaseChain(true);
+    setupServiceMocks(true);
     renderVoting();
 
     await waitFor(() => {
@@ -98,7 +105,7 @@ describe('Voting', () => {
   });
 
   it('exibe opções de voto ao carregar sem voto prévio', async () => {
-    mockSupabaseChain(false);
+    setupServiceMocks(false);
     renderVoting();
 
     await waitFor(() => {
@@ -110,23 +117,21 @@ describe('Voting', () => {
 
   it('insere voto SIM com topic_id correta', async () => {
     const user = userEvent.setup();
-    const chain = mockSupabaseChain(false);
+    setupServiceMocks(false);
     renderVoting();
 
     await waitFor(() => screen.getByRole('button', { name: /votar sim/i }));
     await user.click(screen.getByRole('button', { name: /votar sim/i }));
 
     await waitFor(() => {
-      expect(chain.insert).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({ choice: 'SIM', topic_id: 'topic-abc' }),
-        ])
+      expect(castVote).toHaveBeenCalledWith(
+        expect.objectContaining({ choice: 'SIM', topic_id: 'topic-abc' })
       );
     });
   });
 
   it('botões de voto possuem aria-label e aria-pressed', async () => {
-    mockSupabaseChain(false);
+    setupServiceMocks(false);
     renderVoting();
 
     await waitFor(() => screen.getByRole('button', { name: /votar sim/i }));

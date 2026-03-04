@@ -17,10 +17,6 @@ export default function AdminDashboard() {
   const [isAssembliesOpen, setIsAssembliesOpen] = useState(false);
 
 
-  const navItems = [
-    { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' }
-  ];
-
   const assemblySubItems = [
     { path: '/admin/assemblies', label: 'Gerenciar Sessões' },
     { path: '/admin/topics', label: 'Pautas' },
@@ -33,9 +29,6 @@ export default function AdminDashboard() {
     { path: '/admin/health', icon: HeartPulse, label: 'System Health' },
   ];
 
-  const handleNavClick = () => {
-    setIsMobileMenuOpen(false);
-  };
 
   return (
     <div className="flex h-screen bg-background-light dark:bg-background-dark overflow-hidden relative">

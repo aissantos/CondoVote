@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import type { Database } from '../lib/database.types';
 
 type Profile = {
   id: string;
@@ -7,17 +8,7 @@ type Profile = {
   role: string;
 };
 
-export type Condo = {
-  id: string;
-  cnpj: string;
-  corporate_name: string;
-  trade_name: string;
-  city: string;
-  state: string;
-  logo_url: string | null;
-  manager_id: string | null;
-  invite_code: string | null;
-  is_active: boolean;
+export type Condo = Database['public']['Tables']['condos']['Row'] & {
   manager?: Profile | null;
 };
 
@@ -182,7 +173,8 @@ export function useCondos() {
         uploadedLogoUrl = publicUrlData.publicUrl;
       }
 
-      const updatePayload: any = {
+      type CondoUpdate = Database['public']['Tables']['condos']['Update'];
+      const updatePayload: CondoUpdate = {
         cnpj: formData.cnpj.replace(/\D/g, ''),
         corporate_name: formData.corporate_name,
         trade_name: formData.trade_name,

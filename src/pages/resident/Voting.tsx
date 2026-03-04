@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, ThumbsUp, ThumbsDown, MinusCircle, BadgeInfo, Timer, Loader2, Paperclip } from 'lucide-react';
+import { ArrowLeft, ThumbsUp, ThumbsDown, MinusCircle, BadgeInfo, Loader2, Paperclip } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../hooks/useToast';
+import { getExistingVote, castVote } from '../../services/votes.service';
+import { getTopicWithSignedAttachment } from '../../services/topics.service';
 
 type VoteChoice = 'SIM' | 'NÃO' | 'ABSTENÇÃO';
 
@@ -14,7 +16,8 @@ export default function Voting() {
   const toast = useToast();
   
   // Topic passado via navegação do componente Topics.tsx
-  const topic = location.state?.topic;
+  const locationTopic = location.state?.topic;
+  const [topic, setTopic] = useState(locationTopic);
 
   const [selected, setSelected] = useState<VoteChoice | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -24,7 +27,7 @@ export default function Voting() {
 
   // Carrega perfil e verifica voto existente em paralelo
   useEffect(() => {
-    if (!user || !topic) return;
+    if (!user || !locationTopic) return;
 
     const loadData = async () => {
       const [profileResult, voteResult] = await Promise.all([
@@ -33,15 +36,18 @@ export default function Voting() {
           .select('unit_number, block_number, full_name')
           .eq('id', user.id)
           .single(),
-        supabase
-          .from('votes')
-          .select('id, choice')
-          .eq('topic_id', topic.id)
-          .eq('user_id', user.id)
-          .maybeSingle(), // maybeSingle() não lança erro quando não encontra
+        getExistingVote(locationTopic.id, user.id)
       ]);
 
       if (profileResult.data) setProfile(profileResult.data);
+      
+      // Busca a URL assinada em background se houver anexo
+      if (locationTopic.attachment_url && !locationTopic.attachment_url.startsWith('http')) {
+        const topicResult = await getTopicWithSignedAttachment(locationTopic.id);
+        if (topicResult.data) {
+          setTopic(topicResult.data);
+        }
+      }
 
       // Se já votou, redirecionar imediatamente para a tela de sucesso
       if (voteResult.data) {
@@ -53,7 +59,26 @@ export default function Voting() {
     };
 
     loadData();
-  }, [user, topic, navigate]);
+  }, [user, locationTopic, navigate]);
+
+  const handleVote = useCallback(async (option: VoteChoice) => {
+    if (!user?.id || !topic?.id || submitting || alreadyVoted) return;
+
+    setSelected(option);
+    setSubmitting(true);
+
+    const result = await castVote({ topic_id: topic.id, user_id: user.id, choice: option });
+
+    setSubmitting(false);
+
+    if (result.error) {
+      toast.error('Erro ao registrar voto: ' + result.error.message);
+      setSelected(null);
+    } else {
+      setAlreadyVoted(true);
+      setTimeout(() => navigate('/success', { replace: true }), 600);
+    }
+  }, [user?.id, topic?.id, submitting, alreadyVoted, navigate, toast]);
 
   // Se o usuário acessar a rota diretamente na URL
   if (!topic) {
@@ -76,34 +101,7 @@ export default function Voting() {
     );
   }
 
-  // handleVote precisa vir DEPOIS dos early returns mas é movido para ANTES
-  // para respeitar as Rules of Hooks (hooks nunca podem ser condicionais)
-  const handleVote = async (option: VoteChoice) => {
-    if (!user?.id || submitting || alreadyVoted) return;
 
-    setSelected(option);
-    setSubmitting(true);
-
-    const { error } = await supabase.from('votes').insert([
-      { topic_id: topic.id, user_id: user.id, choice: option }
-    ]);
-
-    setSubmitting(false);
-
-    if (error) {
-      // Tratamento específico para violação de unique constraint (voto duplo)
-      if (error.code === '23505') {
-        setAlreadyVoted(true);
-        navigate('/success', { replace: true });
-        return;
-      }
-      toast.error('Erro ao registrar voto: ' + error.message);
-      setSelected(null);
-    } else {
-      setAlreadyVoted(true);
-      setTimeout(() => navigate('/success', { replace: true }), 600);
-    }
-  };
 
   return (
     <div className="flex-1 flex flex-col min-h-screen bg-background-light dark:bg-background-dark max-w-md mx-auto shadow-2xl relative overflow-hidden">

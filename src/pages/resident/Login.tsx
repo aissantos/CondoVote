@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, LogIn, Mail } from 'lucide-react';
+import { Building2, LogIn } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRateLimit } from '../../hooks/useRateLimit';

@@ -123,10 +123,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           condo_id: data.condo_id
         });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Erro ao buscar role:', e);
       if (!isSilentRefresh) {
-         setError(e instanceof Error ? e : new Error(e?.message || 'Falha na conexão ao carregar perfil'));
+         setError(e instanceof Error ? e : new Error(
+            typeof e === 'object' && e !== null && 'message' in e
+              ? String((e as { message: unknown }).message)
+              : 'Falha na conexão ao carregar perfil'
+         ));
       }
     } finally {
       if (!isSilentRefresh) setLoading(false);

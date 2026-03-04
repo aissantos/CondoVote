@@ -57,7 +57,7 @@ export default function AdminTopics() {
       .order('created_at', { ascending: false });
       
     if (!error && data) {
-      setTopics(data);
+      setTopics(data as Topic[]);
     }
     setLoading(false);
   };

@@ -6,71 +6,92 @@ on:
       - main
 
 jobs:
-  quality-gate:
-    name: Quality Gate
+  typecheck:
+    name: TypeScript Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
+        with: { node-version: "20", cache: "npm" }
+      - run: npm ci
+      - run: npm run lint:ts
+      - name: Verify Supabase database.types.ts drift
+        run: npm run gen:types -- --output /tmp/types-check.ts
+        env: { SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }} }
+      - run: diff src/lib/database.types.ts /tmp/types-check.ts || (echo "❌ Types diverged from database schema" && exit 1)
 
-      - name: Install dependencies
-        run: npm ci
+  lint:
+    name: ESLint Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "npm" }
+      - run: npm ci
+      - run: npm run lint:es
 
-      - name: TypeScript Check
-        run: npm run lint
+  unit-tests:
+    name: Core Unit + Snapshot Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "npm" }
+      - run: npm ci
+      - run: npm run test:coverage
+      - uses: actions/upload-artifact@v4
+        with: { name: unit-coverage-report, path: coverage/ }
 
-      - name: Run Unit Tests
-        run: npm test
+  e2e-tests:
+    name: E2E Playwright Flows
+    runs-on: ubuntu-latest
+    needs: [typecheck, lint, unit-tests]
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "npm" }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run dev &
+      - run: npx wait-on http://localhost:5173
+      - run: npm run test:e2e
+        env:
+          E2E_RESIDENT_EMAIL: ${{ secrets.E2E_RESIDENT_EMAIL }}
+          E2E_RESIDENT_PASSWORD: ${{ secrets.E2E_RESIDENT_PASSWORD }}
 
   deploy-production:
-    name: Deploy Production
-    needs: quality-gate
+    name: Vercel Production Deploy
+    needs: e2e-tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
+        with: { node-version: "20", cache: "npm" }
+      - run: npm ci
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Aplicar Migrations no Banco de Dados Produção
+        with: { version: latest }
+      - name: Apply DB Migrations
         run: |
           supabase link --project-ref ufaqgarxivrfqylifpvg --password "${{ secrets.SUPABASE_DB_PASSWORD }}"
           supabase db push
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
+        env: { SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }} }
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
-
-      - name: Pull Vercel Environment Information
+      - name: Pull Vercel Env Info
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
       - name: Build Project Artifacts
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Deploy Project Artifacts to Vercel
+      - name: Deploy to Vercel
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}

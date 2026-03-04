@@ -1,126 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Users, Building, CheckCircle, PieChart, TrendingUp, Loader2 } from 'lucide-react';
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { supabase } from '../../lib/supabase';
 import { captureError } from '../../lib/monitoring';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useAuth } from '../../contexts/AuthContext';
 import { Copy, Check, Ticket } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
+import { useAssemblyDashboard } from '../../hooks/useAssemblyDashboard';
 
 export default function AdminOverview() {
   const { profile } = useAuth();
   const toast = useToast();
-  const [loading, setLoading] = useState(true);
-  const [statsData, setStatsData] = useState({
-    participants: 0,
-    unitsPresent: 0,
-    activePolls: 0,
-  });
-
-  const [chartData, setChartData] = useState<{name: string, value: number, color: string}[]>([]);
-  const [featuredTopic, setFeaturedTopic] = useState<{title: string} | null>(null);
-  const [recentUsers, setRecentUsers] = useState<{
-    id?: string;
-    full_name: string | null;
-    block_number: string | null;
-    unit_number: string | null;
-    created_at: string;
-  }[]>([]);
   
-  // Condomínio
-  const [condoInfo, setCondoInfo] = useState<{ trade_name: string, invite_code: string | null } | null>(null);
+  const { data, loading } = useAssemblyDashboard(profile?.condo_id);
+  const { condoInfo, stats: statsData, featuredTopic, chartData, recentUsers } = data;
+  
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (profile?.condo_id) {
-      fetchDashboardData();
-    }
-    
-    // Set up realtime subscriptions (funcional se ativado no painel do Supabase)
-    const profilesSub = supabase.channel('profiles-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchDashboardData)
-      .subscribe();
-      
-    const topicsSub = supabase.channel('topics-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'topics' }, fetchDashboardData)
-      .subscribe();
-      
-    const votesSub = supabase.channel('votes-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, fetchDashboardData)
-      .subscribe();
 
-    return () => {
-      supabase.removeChannel(profilesSub);
-      supabase.removeChannel(topicsSub);
-      supabase.removeChannel(votesSub);
-    };
-  }, []);
 
-  const fetchDashboardData = async () => {
-    try {
-      if (!profile?.condo_id) return;
-
-      // Fetch Condo
-      const { data: condo } = await supabase
-        .from('condos')
-        .select('trade_name, invite_code')
-        .eq('id', profile.condo_id)
-        .single();
-      if (condo) setCondoInfo(condo);
-
-      // Fetch stats
-      const { count: participantsCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'RESIDENT').eq('condo_id', profile.condo_id);
-      const { count: activePollsCount } = await supabase.from('topics').select('*', { count: 'exact', head: true }).eq('status', 'OPEN').eq('condo_id', profile.condo_id);
-      
-      setStatsData({
-        participants: participantsCount || 0,
-        unitsPresent: participantsCount || 0, // Simplificado
-        activePolls: activePollsCount || 0,
-      });
-
-      // Fetch featured topic
-      const { data: topics } = await supabase.from('topics').select('id, title').order('created_at', { ascending: false }).limit(1);
-      
-      if (topics && topics.length > 0) {
-        setFeaturedTopic(topics[0]);
-        // Fetch votes for this topic
-        const { data: votes } = await supabase.from('votes').select('choice').eq('topic_id', topics[0].id);
-        
-        let sim = 0, nao = 0, abs = 0;
-        votes?.forEach(v => {
-          if (v.choice === 'SIM') sim++;
-          else if (v.choice === 'NÃO') nao++;
-          else if (v.choice === 'ABSTENÇÃO') abs++;
-        });
-        
-        setChartData([
-          { name: 'SIM', value: sim, color: '#22c55e' },
-          { name: 'NÃO', value: nao, color: '#ef4444' },
-          { name: 'ABSTENÇÃO', value: abs, color: '#64748b' },
-        ]);
-      } else {
-        setFeaturedTopic(null);
-        setChartData([]);
-      }
-
-      // Fetch recent "check-ins" (usuários recém criados como proxy)
-      const { data: recent } = await supabase
-        .from('profiles')
-        .select('full_name, block_number, unit_number, created_at')
-        .eq('role', 'RESIDENT')
-        .eq('condo_id', profile.condo_id)
-        .order('created_at', { ascending: false })
-        .limit(5);
-      
-      if (recent) setRecentUsers(recent);
-    } catch (e) {
-      captureError(e, { component: 'AdminOverview', action: 'fetchDashboardData' });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getFormatTimeAgo = (dateStr: string) => {
     const diff = new Date().getTime() - new Date(dateStr).getTime();

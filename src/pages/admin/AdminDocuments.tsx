@@ -6,6 +6,9 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useToast } from '../../hooks/useToast';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { uploadAssemblyDocument, getSignedDocumentUrl } from '../../lib/storage';
+import type { Database } from '../../lib/database.types';
+
+type InsertDocumentPayload = Database['public']['Tables']['assembly_documents']['Insert'];
 
 type AssemblyDocument = {
   id: string;
@@ -56,7 +59,7 @@ export default function AdminDocuments() {
       .order('created_at', { ascending: false });
       
     if (!error && data) {
-      setDocuments(data);
+      setDocuments(data as AssemblyDocument[]);
     }
     setLoading(false);
   };
@@ -116,16 +119,16 @@ export default function AdminDocuments() {
       setUploadProgress(60);
 
       // 2. Salvar registro no banco com o filePath (não URL pública)
-      const { error: dbError } = await supabase.from('assembly_documents').insert([
-        {
-          title: formData.title,
-          document_type: formData.document_type,
-          file_url: filePath,          // Armazena path, não URL pública
-          created_by: user?.id,
-          condo_id: profile?.condo_id,
-          assembly_id: assemblyId
-        }
-      ]);
+      const docPayload: InsertDocumentPayload = {
+        title: formData.title,
+        document_type: formData.document_type as InsertDocumentPayload['document_type'],
+        file_url: filePath,          // Armazena path, não URL pública
+        created_by: user?.id,
+        condo_id: profile?.condo_id,
+        assembly_id: assemblyId
+      };
+
+      const { error: dbError } = await supabase.from('assembly_documents').insert([docPayload]);
 
       if (dbError) throw dbError;
       setUploadProgress(100);
@@ -323,7 +326,7 @@ export default function AdminDocuments() {
                   <select
                     value={formData.document_type}
                     disabled={submitting}
-                    onChange={(e) => setFormData({...formData, document_type: e.target.value as any})}
+                    onChange={(e) => setFormData({...formData, document_type: e.target.value as 'EDITAL' | 'ATA' | 'BALANCETE' | 'OUTROS'})}
                     className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 h-10 px-3 outline-none appearance-none"
                   >
                     <option value="EDITAL">Edital de Convocação</option>

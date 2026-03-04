@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
 // Substitua pela sua chave VAPID Pública extraída do seu gerador backend / web-push
-const publicVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'SUA_CHAVE_VAPID_PUBLICA_AQUI';
+const publicVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -28,6 +28,9 @@ export function usePushNotifications() {
     try {
       if (!('serviceWorker' in navigator)) {
         throw new Error('Service Worker não suportado pelo navegador.');
+      }
+      if (!publicVapidKey) {
+        throw new Error("Push notifications API isn't fully configured in the environment (Missing VAPID KEY).");
       }
       if (!('PushManager' in window)) {
         throw new Error('Push Notifications não suportados pelo navegador.');

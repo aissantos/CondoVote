@@ -1,6 +1,6 @@
 import React from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
-import { RefreshCw, X, Download } from 'lucide-react';
+import { RefreshCw, X } from 'lucide-react';
 
 export default function ReloadPrompt() {
   const {
@@ -8,11 +8,11 @@ export default function ReloadPrompt() {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({
-    onRegistered(r) {
-      console.log('SW Registered:', r);
+    onRegisteredSW(swUrl, r) {
+      console.warn('SW Registered: ' + r)
     },
     onRegisterError(error) {
-      console.log('SW registration error', error);
+      console.error('SW registration error', error)
     },
   });
 

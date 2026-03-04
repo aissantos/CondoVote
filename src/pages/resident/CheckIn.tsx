@@ -18,9 +18,9 @@ export default function CheckIn() {
 
   useEffect(() => {
     if (profile?.condo_id) {
-      supabase.from('condos').select('name').eq('id', profile.condo_id).single()
+      supabase.from('condos').select('trade_name').eq('id', profile.condo_id).single()
         .then(({data}) => {
-          if (data) setCondoName(data.name);
+          if (data) setCondoName(data.trade_name);
         });
     }
   }, [profile?.condo_id]);
@@ -161,7 +161,7 @@ export default function CheckIn() {
           <div className="space-y-3 pt-2">
             <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Eu sou:</p>
             <div className="grid grid-cols-1 gap-3">
-              {['Proprietário', 'Inquilino', 'Representante Legal'].map((role, idx) => (
+              {['Proprietário', 'Inquilino', 'Representante Legal'].map((role) => (
                 <label
                   key={role}
                   className={`relative flex items-center p-3 rounded-xl border cursor-pointer transition-all ${

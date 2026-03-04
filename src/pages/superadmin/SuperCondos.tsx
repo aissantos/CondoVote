@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Building2, Search, Plus, MapPin, Loader2, ImagePlus, UserCircle, X, Ticket, Copy, Check, Edit2, Trash2, Power, PowerOff } from 'lucide-react';
-import { useCondos } from '../../hooks/useCondos';
+import { useState, useEffect } from 'react';
+import { Building2, Search, Plus, MapPin, Loader2, ImagePlus, X, Copy, Check, Edit2, Trash2, Power, PowerOff } from 'lucide-react';
+import { useCondos, type Condo } from '../../hooks/useCondos';
 import { useToast } from '../../hooks/useToast';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
@@ -73,7 +73,7 @@ export default function SuperCondos() {
     setIsModalOpen(true);
   };
 
-  const openEditModal = (condo: any) => {
+  const openEditModal = (condo: Condo) => {
     setEditingCondoId(condo.id);
     setFormData({
       cnpj: condo.cnpj,

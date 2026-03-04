@@ -47,6 +47,8 @@ export function usePaginatedQuery<T>(
     const to = from + pageSize - 1;
 
     let query = supabase
+       
+      // @ts-ignore
       .from(table)
       .select('*', { count: 'exact' })
       .range(from, to)
@@ -56,7 +58,9 @@ export function usePaginatedQuery<T>(
     const activeFilters = JSON.parse(filtersKey) as Record<string, string | undefined>;
     Object.entries(activeFilters).forEach(([key, value]) => {
       if (value !== undefined && value !== '') {
-        query = query.eq(key, value) as typeof query;
+        // Bypass safe typing at this nested level due to TS2589 infinite loop bug
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        query = (query as any).eq(key, value);
       }
     });
 

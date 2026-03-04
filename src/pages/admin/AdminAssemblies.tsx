@@ -6,6 +6,10 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../hooks/useToast';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { uploadAssemblyDocument } from '../../lib/storage';
+import type { Database } from '../../lib/database.types';
+
+type InsertAssemblyPayload = Database['public']['Tables']['assemblies']['Insert'];
+type UpdateAssemblyPayload = Database['public']['Tables']['assemblies']['Update'];
 
 type Assembly = {
   id: string;
@@ -61,7 +65,7 @@ export default function AdminAssemblies() {
       .order('assembly_date', { ascending: false });
       
     if (!error && data) {
-      setAssemblies(data);
+      setAssemblies(data as Assembly[]);
     }
     setLoading(false);
   };
@@ -148,7 +152,7 @@ export default function AdminAssemblies() {
 
         if (editingId) {
           // Payload mínimo garantido — colunas opcionais adicionadas só se preenchidas
-          const updatePayload: Record<string, unknown> = {
+          const updatePayload: UpdateAssemblyPayload = {
             title: fallbackTitle,
             description: formData.description,
             assembly_date: formData.assembly_date,
@@ -165,7 +169,7 @@ export default function AdminAssemblies() {
           if (error) throw error;
         } else {
           // Payload mínimo garantido — colunas opcionais adicionadas só se preenchidas
-          const insertPayload: Record<string, unknown> = {
+          const insertPayload: InsertAssemblyPayload = {
             title: fallbackTitle,
             description: formData.description,
             assembly_date: formData.assembly_date,
@@ -414,7 +418,7 @@ export default function AdminAssemblies() {
                        {['PRESENCIAL', 'REMOTO', 'HIBRIDO'].map((fmt) => (
                            <button
                              key={fmt}
-                             onClick={() => setFormData({...formData, format: fmt as any})}
+                             onClick={() => setFormData({...formData, format: fmt as 'PRESENCIAL' | 'REMOTO' | 'HIBRIDO'})}
                              className={`py-2 text-xs font-bold rounded-lg border transition-all ${formData.format === fmt ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-500/20 dark:border-indigo-500/30 dark:text-indigo-300' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'}`}
                            >
                              {fmt}

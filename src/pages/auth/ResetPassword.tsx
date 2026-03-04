@@ -14,10 +14,10 @@ export default function ResetPassword() {
 
   // O Supabase lê automaticamente o '#access_token' da URL da Vercel
   useEffect(() => {
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    supabase.auth.onAuthStateChange(async (event) => {
       // Quando logar por recovery
       if (event === "PASSWORD_RECOVERY") {
-        console.log("Fluxo de Reset Autorizado.");
+        console.warn("Fluxo de Reset Autorizado.");
       }
     });
   }, []);

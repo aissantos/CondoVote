@@ -24,6 +24,7 @@ export default function ResidentDocuments() {
 
   useEffect(() => {
     fetchDocuments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchDocuments = async () => {
@@ -40,7 +41,7 @@ export default function ResidentDocuments() {
       .order('created_at', { ascending: false });
       
     if (!error && data) {
-      setDocuments(data as any);
+      setDocuments(data as typeof documents);
     }
     setLoading(false);
   };

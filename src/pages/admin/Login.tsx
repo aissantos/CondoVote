@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, LogIn } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useRateLimit } from '../../hooks/useRateLimit';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -9,9 +10,17 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { check, reset } = useRateLimit(5, 60_000);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const { allowed, waitSeconds } = check();
+    if (!allowed) {
+      setError(`Muitas tentativas. Aguarde ${waitSeconds}s.`);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     
@@ -28,6 +37,7 @@ export default function AdminLogin() {
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
       
       if (profile?.role === 'ADMIN') {
+        reset();
         navigate('/admin');
       } else {
         await supabase.auth.signOut();
