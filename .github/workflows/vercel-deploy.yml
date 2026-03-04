@@ -72,7 +72,7 @@ jobs:
           node-version: "20"
           cache: "npm"
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium webkit
       - run: npm run dev &
       - run: npx wait-on http://localhost:5173
       - run: npm run test:e2e
