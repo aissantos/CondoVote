@@ -136,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     setProfile(null);
     setRole(null);
+    clearUser(); // Sentry — limpa contexto de usuário
     await supabase.auth.signOut();
   };
 

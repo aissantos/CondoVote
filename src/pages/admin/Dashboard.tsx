@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Routes, Route, Link, useLocation, useNavigate, NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, ListTodo, Activity, LogOut, Menu, X, Users, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, ListTodo, Activity, LogOut, Menu, X, Users, ChevronDown, HeartPulse } from 'lucide-react';
 import AdminOverview from './AdminOverview';
 import AdminTopics from './AdminTopics';
 import AdminAssemblies from './AdminAssemblies';
 import AdminDocuments from './AdminDocuments';
 import AdminMonitor from './AdminMonitor';
 import AdminUsers from './AdminUsers';
+import AdminHealth from './AdminHealth';
 
 export default function AdminDashboard() {
   const location = useLocation();
@@ -29,6 +30,7 @@ export default function AdminDashboard() {
   const secondaryNavItems = [
     { path: '/admin/monitor', icon: Activity, label: 'Monitor de Presença' },
     { path: '/admin/users', icon: Users, label: 'Moradores Base' },
+    { path: '/admin/health', icon: HeartPulse, label: 'System Health' },
   ];
 
   const handleNavClick = () => {
@@ -161,6 +163,7 @@ export default function AdminDashboard() {
           <Route path="/topics" element={<AdminTopics />} />
           <Route path="/monitor" element={<AdminMonitor />} />
           <Route path="/users" element={<AdminUsers />} />
+          <Route path="/health" element={<AdminHealth />} />
         </Routes>
       </main>
     </div>

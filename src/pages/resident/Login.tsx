@@ -78,6 +78,7 @@ export default function ResidentLogin() {
             <input
               type="email"
               required
+              data-testid="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-transparent text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
@@ -99,6 +100,7 @@ export default function ResidentLogin() {
             <input
               type="password"
               required
+              data-testid="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-transparent text-slate-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
@@ -108,6 +110,7 @@ export default function ResidentLogin() {
 
           <button
             type="submit"
+            data-testid="submit"
             disabled={loading}
             className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50"
           >

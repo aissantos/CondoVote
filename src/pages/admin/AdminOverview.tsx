@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Users, Building, CheckCircle, PieChart, TrendingUp, Loader2 } from 'lucide-react';
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { supabase } from '../../lib/supabase';
+import { captureError } from '../../lib/monitoring';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useAuth } from '../../contexts/AuthContext';
@@ -115,7 +116,7 @@ export default function AdminOverview() {
       
       if (recent) setRecentUsers(recent);
     } catch (e) {
-      console.error("Erro ao carregar dados", e);
+      captureError(e, { component: 'AdminOverview', action: 'fetchDashboardData' });
     } finally {
       setLoading(false);
     }
@@ -146,7 +147,7 @@ export default function AdminOverview() {
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save('relatorio-assembleia.pdf');
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
+      captureError(error, { component: 'AdminOverview', action: 'exportPDF' });
       toast.error('Houve um erro ao gerar o relatório.');
     }
   };

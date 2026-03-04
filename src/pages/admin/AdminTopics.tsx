@@ -105,7 +105,13 @@ export default function AdminTopics() {
         }
 
         if (editingId) {
-          const payload: any = {
+          type TopicUpdatePayload = {
+            title: string;
+            description: string;
+            status: string;
+            attachment_url?: string;
+          };
+          const payload: TopicUpdatePayload = {
             title: formData.title,
             description: formData.description,
             status

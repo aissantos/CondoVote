@@ -78,10 +78,19 @@ export default function AdminMonitor() {
 
       if (!residentsResult.data) return;
 
-      const mergedData: Participant[] = residentsResult.data.map((resident: any) => {
+      type ResidentRow = {
+        id: string;
+        full_name: string | null;
+        unit_number: string | null;
+        block_number: string | null;
+        checkins?: { created_at: string }[];
+        votes?: { topic_id: string; choice: string }[];
+      };
+
+      const mergedData: Participant[] = (residentsResult.data as ResidentRow[]).map((resident) => {
         const checkin = resident.checkins?.[0];
         const vote = activeTopic
-          ? resident.votes?.find((v: any) => v.topic_id === activeTopic.id)
+          ? resident.votes?.find((v) => v.topic_id === activeTopic.id)
           : null;
 
         return {

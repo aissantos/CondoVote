@@ -222,6 +222,7 @@ export default function CheckIn() {
           <div className="pt-6 pb-2">
             <button
               type="submit"
+              data-testid="checkin-button"
               disabled={submitting}
               className="w-full flex items-center justify-center bg-primary hover:bg-blue-600 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-primary/20 transition-all active:scale-[0.98] disabled:opacity-75"
             >

@@ -118,9 +118,10 @@ export default function Topics() {
            <p className="text-center text-sm text-surface-border font-medium mt-10">Nenhuma pauta disponível no momento.</p>
         ) : (
           <div className="flex flex-col gap-3 pb-8">
-            {filteredTopics.map((topic) => (
+            {filteredTopics.map((topic, index) => (
               <div
                 key={topic.id}
+                data-testid={`vote-topic-${index}`}
                 onClick={() => {
                   if (topic.status === 'OPEN' && !topic.user_voted) {
                     navigate(`/voting`, { state: { topic } });
