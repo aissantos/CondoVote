@@ -18,6 +18,10 @@ jobs:
           cache: "npm"
       - run: npm ci
       - run: npm run lint:ts
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
       - name: Verify Supabase database.types.ts drift
         run: npm run gen:types -- --output /tmp/types-check.ts
         env:
