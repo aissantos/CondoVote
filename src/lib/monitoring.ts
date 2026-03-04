@@ -8,26 +8,34 @@ import * as Sentry from '@sentry/react';
 // DSN: variável de ambiente tem prioridade sobre o fallback hardcoded
 const DSN =
   (import.meta.env.VITE_SENTRY_DSN as string | undefined) ||
-  'https://3dc47e375bd81fe0c6b8ce201a6f716a@o4510449042325504.ingest.us.sentry.io/4510982976045056';
+  'https://a88b7686272bb897d648b178a4457438@o4510449042325504.ingest.us.sentry.io/4510985887875072';
 
 const IS_PROD = import.meta.env.PROD;
 
 /** Inicializa o Sentry. Chamar antes do ReactDOM.render em main.tsx */
 export function initMonitoring() {
-  if (!DSN) return; // Garante que DSN existe
+  if (!DSN) return;
 
   Sentry.init({
     dsn: DSN,
     environment: IS_PROD ? 'production' : 'development',
-    sendDefaultPii: true, // Coleta IP e dados de usuário autenticado
-    // Amostragem: 10% de sessões normais, 100% em sessões com erro
-    tracesSampleRate: IS_PROD ? 0.1 : 0,
-    replaysSessionSampleRate: IS_PROD ? 0.05 : 0,
+    sendDefaultPii: true,
+    // Tracing — 100% em produção (ajustar para 0.1 em alto volume de tráfego)
+    tracesSampleRate: 1.0,
+    tracePropagationTargets: [
+      'localhost',
+      /^https:\/\/ufaqgarxivrfqylifpvg\.supabase\.co/,
+      /^https:\/\/condovote\.vercel\.app/,
+    ],
+    // Session Replay
+    replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
     integrations: [
       Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration({ maskAllText: false, blockAllMedia: false }),
+      Sentry.replayIntegration(),
     ],
+    // Logs estruturados enviados para o Sentry
+    enableLogs: true,
     // Ignora erros de extensões de browser e erros de rede esperados
     ignoreErrors: [
       'ResizeObserver loop limit exceeded',
@@ -35,12 +43,12 @@ export function initMonitoring() {
       'Failed to fetch',
     ],
     beforeSend(event) {
-      // Não capturar em desenvolvimento local (sem build de produção)
       if (import.meta.env.DEV) return null;
       return event;
     },
   });
 }
+
 
 
 /** Registra o usuário autenticado no contexto do Sentry */
