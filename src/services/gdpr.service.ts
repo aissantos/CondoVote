@@ -10,7 +10,6 @@ export async function exportUserData(userId: string): Promise<Result<Blob>> {
       supabase.from('profiles').select('*').eq('id', userId).single(),
       supabase.from('votes').select('*, topics(title)').eq('user_id', userId),
       supabase.from('checkins').select('*, assemblies(title, assembly_date)').eq('user_id', userId),
-      // @ts-expect-error
       supabase.from('consents').select('*').eq('user_id', userId),
     ]);
 

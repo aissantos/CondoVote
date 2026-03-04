@@ -7,7 +7,6 @@ export async function recordConsent(
   version: string
 ): Promise<Result<boolean>> {
   try {
-    // @ts-expect-error Pula checagem restrita até que a migration da tabela 'consents' seja refletida no typegen
     const { error } = await supabase.from('consents').insert({
       user_id: userId,
       consent_type: type,
