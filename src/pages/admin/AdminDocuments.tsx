@@ -93,11 +93,6 @@ export default function AdminDocuments() {
     }
   };
 
-  const _generateFileName = (originalName: string) => {
-    const timestamp = new Date().getTime();
-    const cleanName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_');
-    return `${profile?.condo_id}/${assemblyId}/${timestamp}_${cleanName}`;
-  };
 
   const handleUploadAndSave = async (e: React.FormEvent) => {
     e.preventDefault();

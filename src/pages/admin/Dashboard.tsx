@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Routes, Route, Link, useLocation, useNavigate, NavLink, Outlet } from 'react-router-dom';
+import { Routes, Route, useNavigate, NavLink } from 'react-router-dom';
 import { LayoutDashboard, ListTodo, Activity, LogOut, Menu, X, Users, ChevronDown, HeartPulse } from 'lucide-react';
 import AdminOverview from './AdminOverview';
 import AdminTopics from './AdminTopics';
@@ -10,10 +10,8 @@ import AdminUsers from './AdminUsers';
 import AdminHealth from './AdminHealth';
 
 export default function AdminDashboard() {
-  const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isAssembliesOpen, setIsAssembliesOpen] = useState(false);
 
 

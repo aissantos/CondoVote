@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, AlertTriangle, Building, ShieldCheck, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertTriangle, Building, ShieldCheck, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePaginatedQuery } from '../../hooks/usePaginatedQuery';
 

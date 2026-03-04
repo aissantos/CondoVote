@@ -4,7 +4,7 @@ import { RefreshCw, X } from 'lucide-react';
 
 export default function ReloadPrompt() {
   const {
-    offlineReady: [_offlineReady, setOfflineReady],
+    offlineReady: [, setOfflineReady],
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({
