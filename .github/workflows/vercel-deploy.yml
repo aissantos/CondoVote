@@ -23,10 +23,14 @@ jobs:
         with:
           version: latest
       - name: Verify Supabase database.types.ts drift
-        run: npm run gen:types -- --output /tmp/types-check.ts
+        run: |
+          supabase gen types typescript \
+            --project-id ufaqgarxivrfqylifpvg \
+            --schema public > /tmp/types-check.ts
+          diff src/lib/database.types.ts /tmp/types-check.ts || \
+            (echo "❌ Types diverged from database schema" && exit 1)
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      - run: diff src/lib/database.types.ts /tmp/types-check.ts || (echo "❌ Types diverged from database schema" && exit 1)
 
   lint:
     name: ESLint Validation
