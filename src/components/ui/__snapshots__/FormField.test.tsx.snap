@@ -1,0 +1,68 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`FormField UI Snapshots > renderiza FormField com erro corretamente (snapshot) 1`] = `
+<DocumentFragment>
+  <div
+    class="flex flex-col gap-1.5"
+  >
+    <label
+      class="text-sm font-semibold text-slate-700 dark:text-slate-300"
+      for="_r_0_"
+    >
+      CPF
+      <span
+        aria-hidden="true"
+        class="ml-1 text-red-500"
+      >
+        *
+      </span>
+    </label>
+    <input
+      aria-describedby="_r_0_-error"
+      aria-invalid="true"
+      aria-required="true"
+      id="_r_0_"
+      type="text"
+    />
+    <p
+      aria-live="polite"
+      class="text-xs font-medium text-red-600 dark:text-red-400 flex items-center gap-1"
+      id="_r_0_-error"
+      role="alert"
+    >
+      <span
+        aria-hidden="true"
+      >
+        ⚠
+      </span>
+      CPF inválido
+    </p>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`FormField UI Snapshots > renderiza FormField com hint corretamente (snapshot) 1`] = `
+<DocumentFragment>
+  <div
+    class="flex flex-col gap-1.5"
+  >
+    <label
+      class="text-sm font-semibold text-slate-700 dark:text-slate-300"
+      for="_r_1_"
+    >
+      Senha
+    </label>
+    <input
+      aria-describedby="_r_1_-hint"
+      id="_r_1_"
+      type="password"
+    />
+    <p
+      class="text-xs text-slate-500 dark:text-slate-400"
+      id="_r_1_-hint"
+    >
+      Mínimo de 8 caracteres
+    </p>
+  </div>
+</DocumentFragment>
+`;

@@ -47,6 +47,7 @@ export default function AdminDocuments() {
     if (assemblyId) {
       fetchDocuments();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assemblyId]);
 
   const fetchDocuments = async () => {
@@ -92,7 +93,7 @@ export default function AdminDocuments() {
     }
   };
 
-  const generateFileName = (originalName: string) => {
+  const _generateFileName = (originalName: string) => {
     const timestamp = new Date().getTime();
     const cleanName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_');
     return `${profile?.condo_id}/${assemblyId}/${timestamp}_${cleanName}`;

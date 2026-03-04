@@ -45,6 +45,7 @@ export default function AdminTopics() {
     if (assemblyId) {
       fetchTopics();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assemblyId]);
 
   const fetchTopics = async () => {

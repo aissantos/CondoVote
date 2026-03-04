@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Clock, CheckCircle2, Loader2, Lock, ArrowRight, FileText, Image, FileWarning, Video } from 'lucide-react';
+import { Plus, Edit2, Trash2, Clock, CheckCircle2, Loader2, Lock, ArrowRight, FileText, Image, FileWarning } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -54,6 +54,7 @@ export default function AdminAssemblies() {
 
   useEffect(() => {
     fetchAssemblies();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchAssemblies = async () => {

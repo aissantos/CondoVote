@@ -85,7 +85,7 @@ export function usePushNotifications() {
 
   const sendPush = useCallback(async (payload: { title: string; body: string; user_id?: string; condo_id?: string; url?: string }) => {
     try {
-      const { data, error } = await supabase.functions.invoke('send-push', {
+      const { error } = await supabase.functions.invoke('send-push', {
         body: payload
       });
       if (error) throw error;

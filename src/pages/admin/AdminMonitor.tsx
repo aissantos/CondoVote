@@ -41,6 +41,7 @@ export default function AdminMonitor() {
         supabase.removeChannel(changesSub);
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.condo_id]);
 
   const fetchMonitorData = async () => {
