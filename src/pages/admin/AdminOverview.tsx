@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Building, CheckCircle, TrendingUp, Loader2, Copy, Check, Ticket, User, UserMinus, FileSignature, AlertCircle, History, CalendarDays } from 'lucide-react';
+import { Copy, Check, ChevronDown, CalendarDays, Loader2, TrendingUp } from 'lucide-react';
 import { captureError } from '../../lib/monitoring';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -19,11 +19,11 @@ export default function AdminOverview() {
   const getFormatTimeAgo = (dateStr: string) => {
     const diff = new Date().getTime() - new Date(dateStr).getTime();
     const minutes = Math.floor(diff / 60000);
-    if (minutes < 1) return 'Agora mesmo';
-    if (minutes < 60) return `Há ${minutes} min`;
+    if (minutes < 1) return 'Agora';
+    if (minutes < 60) return `${minutes} min ago`;
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `Há ${hours} h`;
-    return `Há ${Math.floor(hours/24)} dias`;
+    if (hours < 24) return `${hours} h ago`;
+    return `${Math.floor(hours/24)} days ago`;
   };
 
   const handleExportPDF = async () => {
@@ -56,254 +56,285 @@ export default function AdminOverview() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="animate-spin text-primary size-10" />
+        <Loader2 className="animate-spin text-blue-500 size-10" />
       </div>
     );
   }
 
-  const quorumPct = quorum.totalResidents > 0 
-    ? Math.round((quorum.present / quorum.totalResidents) * 100) 
-    : 0;
-
-  const stats = [
-    { label: 'Unidades Presentes', value: quorum.present.toString(), icon: Building, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { label: 'Titulares', value: quorum.titulares.toString(), icon: User, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-    { label: 'Inquilinos', value: quorum.inquilinos.toString(), icon: Users, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-    { label: 'Procurações', value: quorum.proxies.toString(), icon: FileSignature, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-    { label: 'Faltantes', value: quorum.missing.toString(), icon: UserMinus, color: 'text-red-500', bg: 'bg-red-500/10' },
-    { label: 'Quórum Atual', value: `${quorumPct}%`, icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-  ];
+  const total = quorum.totalResidents > 0 ? quorum.totalResidents : 1; // avoid / 0
+  const pctPresent = Math.round((quorum.present / total) * 100);
+  const pctTitular = Math.round((quorum.titulares / total) * 100);
+  const pctInq = Math.round((quorum.inquilinos / total) * 100);
+  const pctProxy = Math.round((quorum.proxies / total) * 100);
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto" id="dashboard-report">
-      {/* 1. SEÇÃO GERAL (TOPO) */}
-      <div className="flex flex-col gap-6" data-html2canvas-ignore="true">
+    <div id="dashboard-report" className="min-h-full bg-[#111827] text-gray-300 font-sans p-6 space-y-6">
+      
+      {/* HEADER SECTION IS HANDLED BY LAYOUT, BUT WE CAN ADD OUR OWN INTRO IF WE WANT */}
+      <div className="flex items-center justify-between mb-2">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Visão Geral</h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Painel do Síndico - {condoInfo?.trade_name}</p>
+          <h1 className="text-white font-bold text-lg md:text-2xl">Dashboard do Síndico</h1>
+          <p className="text-gray-500 text-xs md:text-sm uppercase tracking-wide">{condoInfo?.trade_name}</p>
         </div>
+        <button onClick={handleExportPDF} className="flex items-center gap-2 bg-[#1f2937] border border-[#2a3042] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#2a3042] transition-colors" data-html2canvas-ignore="true">
+          <TrendingUp size={16} /> Relatório
+        </button>
+      </div>
 
-        {condoInfo?.invite_code && (
-          <div className="bg-linear-to-r from-primary to-primary-hover p-1 rounded-2xl shadow-lg">
-            <div className="bg-white dark:bg-surface-dark rounded-xl p-6 flex flex-col sm:flex-row items-center justify-between gap-6 border border-primary/20">
-              <div className="flex items-center gap-4">
-                <div className="size-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <Ticket className="text-primary size-7" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">Código de Convite</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Compartilhe no grupo do condomínio para os moradores se cadastrarem.</p>
+      {/* Invite Code Banner */}
+      {condoInfo?.invite_code && (
+        <section className="rounded-xl overflow-hidden bg-gradient-to-r from-[#00d2ff] to-[#3a7bd5] p-6 flex items-center justify-between shadow-lg relative">
+          <div className="absolute right-0 top-0 h-full w-1/2 bg-white/10 opacity-20 transform skew-x-12 translate-x-20"></div>
+          <div className="relative z-10 w-full flex items-center justify-between">
+            <div>
+              <p className="text-white/80 text-sm font-medium mb-1">Código de Convite</p>
+              <h2 className="text-white text-3xl md:text-4xl font-bold tracking-wider">{condoInfo.invite_code}</h2>
+            </div>
+            <button 
+              onClick={() => handleCopyCode(condoInfo.invite_code)} 
+              className="bg-black/20 hover:bg-black/30 text-white rounded-lg p-3 transition backdrop-blur-sm z-10 shrink-0"
+            >
+              {copiedCode === condoInfo.invite_code ? <Check size={24} /> : <Copy size={24} />}
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* Active Assembly Stats */}
+      {activeAssembly ? (
+        <section className="rounded-xl p-6 border border-[#2a3042] shadow-sm bg-[#1f2937]">
+          <div className="mb-8">
+            <h3 className="text-white font-bold text-lg">Assembleia Ativa</h3>
+            <p className="text-gray-400 text-sm flex items-center gap-2">
+               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+               {activeAssembly.title} — {new Date(activeAssembly.assembly_date).toLocaleDateString()}
+            </p>
+          </div>
+          
+          <div className="flex flex-col xl:flex-row items-center gap-10 justify-around">
+            {/* Main Donut */}
+            <div className="flex flex-col items-center justify-center">
+              <p className="text-xs text-gray-400 uppercase mb-4 text-center tracking-wider">Quórum Atual</p>
+              <div 
+                className="relative h-40 w-40 rounded-full flex items-center justify-center transition-all duration-700" 
+                style={{ background: `conic-gradient(#3b82f6 0% ${pctPresent}%, #374151 ${pctPresent}% 100%)` }}
+              >
+                <div className="absolute inset-[15px] bg-[#1f2937] rounded-full flex items-center justify-center">
+                  <span className="text-4xl font-bold text-white">{pctPresent}%</span>
                 </div>
               </div>
+            </div>
+            
+            {/* Secondary Stats Grid */}
+            <div className="flex-1 grid grid-cols-2 sm:grid-cols-5 gap-6 text-center w-full max-w-4xl">
+              {/* Presentes */}
+              <div className="flex flex-col items-center">
+                <p className="text-[10px] text-gray-400 uppercase mb-3 text-center h-6 flex items-end justify-center">Unidades Presentes</p>
+                <div className="relative h-14 w-14 rounded-full flex items-center justify-center mb-2 transition-all duration-700" style={{ background: `conic-gradient(#10b981 0% ${pctPresent}%, #374151 ${pctPresent}% 100%)` }}>
+                  <div className="absolute inset-[4px] bg-[#1f2937] rounded-full flex items-center justify-center text-xs text-white font-bold">{pctPresent}%</div>
+                </div>
+                <span className="text-white font-bold block text-sm">{quorum.present}/{total}</span>
+                <span className="bg-green-500/20 text-green-500 text-[10px] px-2 py-0.5 rounded-full mt-1 font-bold">{pctPresent}%</span>
+              </div>
               
-              <div className="flex items-center gap-3">
-                <span className="px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl text-3xl font-mono font-bold tracking-widest border border-slate-200 dark:border-slate-700">
-                  {condoInfo.invite_code}
-                </span>
-                <button
-                  onClick={() => handleCopyCode(condoInfo.invite_code)}
-                  className="p-3 bg-primary text-white hover:bg-primary-hover rounded-xl shadow-md transition-colors"
-                  title="Copiar código de convite"
-                >
-                  {copiedCode === condoInfo.invite_code ? <Check size={24} /> : <Copy size={24} />}
-                </button>
+              {/* Titulares */}
+              <div className="flex flex-col items-center">
+                <p className="text-[10px] text-gray-400 uppercase mb-3 text-center h-6 flex items-end justify-center">Titulares</p>
+                <div className="relative h-14 w-14 rounded-full flex items-center justify-center mb-2 transition-all duration-700" style={{ background: `conic-gradient(#3b82f6 0% ${pctTitular}%, #374151 ${pctTitular}% 100%)` }}>
+                  <div className="absolute inset-[4px] bg-[#1f2937] rounded-full flex items-center justify-center text-xs text-white font-bold">{pctTitular}%</div>
+                </div>
+                <span className="text-white font-bold block text-sm">{quorum.titulares}/{total}</span>
+                <span className="bg-blue-500/20 text-blue-500 text-[10px] px-2 py-0.5 rounded-full mt-1 font-bold">{pctTitular}%</span>
+              </div>
+              
+              {/* Inquilinos */}
+              <div className="flex flex-col items-center">
+                <p className="text-[10px] text-gray-400 uppercase mb-3 text-center h-6 flex items-end justify-center">Inquilinos</p>
+                <div className="relative h-14 w-14 rounded-full flex items-center justify-center mb-2 transition-all duration-700" style={{ background: `conic-gradient(#8b5cf6 0% ${pctInq}%, #374151 ${pctInq}% 100%)` }}>
+                  <div className="absolute inset-[4px] bg-[#1f2937] rounded-full flex items-center justify-center text-xs text-white font-bold">{pctInq}%</div>
+                </div>
+                <span className="text-white font-bold block text-sm">{quorum.inquilinos}/{total}</span>
+                <span className="bg-purple-500/20 text-purple-500 text-[10px] px-2 py-0.5 rounded-full mt-1 font-bold">{pctInq}%</span>
+              </div>
+              
+              {/* Procurações */}
+              <div className="flex flex-col items-center">
+                <p className="text-[10px] text-gray-400 uppercase mb-3 text-center h-6 flex items-end justify-center">Procurações</p>
+                <div className="relative h-14 w-14 rounded-full flex items-center justify-center mb-2 transition-all duration-700" style={{ background: `conic-gradient(#9ca3af 0% ${pctProxy}%, #374151 ${pctProxy}% 100%)` }}>
+                  <div className="absolute inset-[4px] bg-[#1f2937] rounded-full flex items-center justify-center text-xs text-white font-bold">{pctProxy}%</div>
+                </div>
+                <span className="text-white font-bold block text-sm">{quorum.proxies}/{total}</span>
+                <span className="bg-gray-700/20 text-gray-400 text-[10px] px-2 py-0.5 rounded-full mt-1 font-bold">{pctProxy}%</span>
+              </div>
+              
+              {/* Faltantes */}
+              <div className="flex flex-col items-center justify-center pt-8">
+                <p className="text-[10px] text-gray-400 uppercase mb-2">Faltantes</p>
+                <span className="font-bold text-white text-[3rem] leading-none">{quorum.missing}</span>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </section>
+      ) : (
+        <section className="rounded-xl p-12 border border-[#2a3042] shadow-sm bg-[#1f2937] text-center">
+          <TrendingUp size={48} className="text-[#374151] mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-white mb-2">Sem atividade no momento</h3>
+          <p className="text-gray-400 max-w-md mx-auto">
+            Assim que você abrir uma assembleia, os indicadores de quórum e votação aparecerão agrupados aqui.
+          </p>
+        </section>
+      )}
 
-      {/* 2. SEÇÃO DA ASSEMBLEIA ATIVA */}
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-              </span>
+      {/* Voting Agenda */}
+      {activeAssembly && (
+        <section>
+          <h3 className="text-gray-400 text-xs font-bold uppercase mb-4 tracking-wider">Pautas em Votação</h3>
+          {topics.length === 0 ? (
+            <div className="border border-[#2a3042] rounded-xl p-8 shadow-sm flex flex-col items-center justify-center gap-3 bg-[#1f2937] text-gray-500">
+               <span className="text-sm">Nenhuma pauta cadastrada para esta assembleia.</span>
             </div>
-            <div>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Assembleia Ativa</h3>
-              {activeAssembly && (
-                <p className="text-slate-500 dark:text-slate-400 font-medium">
-                  {activeAssembly.title} — {new Date(activeAssembly.assembly_date).toLocaleDateString()}
-                </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {topics.map(t => {
+                const totalVotes = t.votes.total;
+                const simPct = totalVotes > 0 ? Math.round((t.votes.sim / totalVotes) * 100) : 0;
+                const naoPct = totalVotes > 0 ? Math.round((t.votes.nao / totalVotes) * 100) : 0;
+                const absPct = totalVotes > 0 ? Math.round((t.votes.abstencao / totalVotes) * 100) : 0;
+
+                return (
+                  <div key={t.id} className="border border-[#2a3042] rounded-xl p-5 shadow-sm flex flex-col bg-[#1f2937]">
+                    <span className="text-[10px] text-gray-500 uppercase font-semibold mb-1">Pautas</span>
+                    <h4 className="text-white font-medium mb-4 line-clamp-2 min-h-[3rem]" title={t.title}>{t.title}</h4>
+                    <div className="flex justify-center mb-6">
+                      <span className={`text-white font-bold px-8 py-1.5 rounded-full text-sm shadow-md ${
+                        t.status === 'OPEN' ? 'bg-[#28a745]' : t.status === 'CLOSED' ? 'bg-gray-600' : 'bg-yellow-600'
+                      }`}>
+                        {t.status === 'OPEN' ? 'ABERTA' : t.status === 'CLOSED' ? 'ENCERRADA' : 'RASCUNHO'}
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-4 mb-4 text-sm">
+                      <div className="flex items-center gap-3">
+                        <span className="w-2 h-2 rounded-full bg-green-500 shrink-0"></span>
+                        <span className="w-8 font-bold text-gray-300 shrink-0">SIM:</span>
+                        <div className="flex-1 h-1 bg-[#2a3042] rounded-full overflow-hidden">
+                          <div className="h-full bg-green-500 transition-all duration-700" style={{ width: `${simPct}%` }}></div>
+                        </div>
+                        <span className="text-xs text-gray-400 w-12 text-right shrink-0">{t.votes.sim} ({simPct}%)</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="w-2 h-2 rounded-full bg-red-500 shrink-0"></span>
+                        <span className="w-8 font-bold text-gray-300 shrink-0">NÃO:</span>
+                        <div className="flex-1 h-1 bg-[#2a3042] rounded-full overflow-hidden">
+                          <div className="h-full bg-red-500 transition-all duration-700" style={{ width: `${naoPct}%` }}></div>
+                        </div>
+                        <span className="text-xs text-gray-400 w-12 text-right shrink-0">{t.votes.nao} ({naoPct}%)</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0"></span>
+                        <span className="w-8 font-bold text-gray-300 shrink-0">ABS:</span>
+                        <div className="flex-1 h-1 bg-[#2a3042] rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-500 transition-all duration-700" style={{ width: `${absPct}%` }}></div>
+                        </div>
+                        <span className="text-xs text-gray-400 w-12 text-right shrink-0">{t.votes.abstencao} ({absPct}%)</span>
+                      </div>
+                    </div>
+                    <div className="mt-auto pt-4 border-t border-[#2a3042] text-center text-xs text-gray-400">
+                      Total: {totalVotes} voto{totalVotes !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Info Split Section (Participants & Timeline) */}
+      {activeAssembly && (
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="border border-[#2a3042] rounded-xl p-5 bg-[#1f2937]">
+            <h3 className="text-white text-sm font-bold uppercase mb-4">Últimos Participantes</h3>
+            <ul className="space-y-4">
+              {recentUsers.length > 0 ? recentUsers.map((u, i) => (
+                <li key={i} className="flex items-center">
+                  <div className="h-10 w-10 shrink-0 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold mr-3">
+                    {u.full_name?.charAt(0) || 'U'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-gray-200 text-sm block truncate">{u.full_name || 'Usuário Sem Nome'}</span>
+                    <span className="text-xs text-gray-500 block truncate">Bloco {u.block_number || '?'} - Und {u.unit_number || '?'}</span>
+                  </div>
+                  <span className="text-[10px] text-gray-500 ml-2">{getFormatTimeAgo(u.created_at)}</span>
+                </li>
+              )) : (
+                 <li className="text-gray-500 text-sm py-2 text-center">Nenhum participante ainda.</li>
+              )}
+            </ul>
+          </div>
+
+          <div className="border border-[#2a3042] rounded-xl p-5 bg-[#1f2937]">
+            <h3 className="text-white text-sm font-bold uppercase mb-4">Live Updates (Atividade Recente)</h3>
+            <div className="relative space-y-6 pl-2 before:absolute before:inset-0 before:ml-[13px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
+              {/* Using recent topics as timeline placeholders since we don't have a real activity feed */}
+              {topics.length > 0 ? topics.slice(0, 4).map((t, i) => (
+                <div key={i} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                    <div className={`flex items-center justify-center w-3 h-3 rounded-full border-4 border-[#1f2937] shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow ring-2 ring-dark-800 ${i === 0 ? 'bg-green-500' : 'bg-blue-500'}`}></div>
+                    <div className="w-[calc(100%-2rem)] md:w-[calc(50%-1.5rem)] ml-4 md:ml-0 md:group-odd:pr-4 md:group-even:pl-4">
+                       <p className="text-gray-300 text-xs leading-relaxed line-clamp-2">{t.title}</p>
+                       <span className="text-[10px] text-gray-500">{t.status === 'OPEN' ? 'Votação reaberta/criada' : 'Aguardando encerramento'}</span>
+                    </div>
+                </div>
+              )) : (
+                 <div className="text-gray-500 text-sm py-2 text-center relative z-10 w-full">Nenhuma atualização registrada.</div>
               )}
             </div>
           </div>
-          <button onClick={handleExportPDF} disabled={!activeAssembly} className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-surface-dark border border-slate-200 dark:border-border-dark rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" data-html2canvas-ignore="true">
-            <TrendingUp size={16} />
-            Exportar Relatório
-          </button>
+        </section>
+      )}
+
+      {/* Session History Table */}
+      <section className="border border-[#2a3042] rounded-xl overflow-hidden mb-6 bg-[#1f2937]">
+        <div className="p-4 border-b border-[#2a3042] bg-[#1f2937]">
+          <h3 className="text-white text-sm font-bold uppercase">Histórico de Sessões</h3>
         </div>
-
-        {activeAssembly ? (
-          <div className="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-200 dark:border-border-dark space-y-8">
-            {/* Quórum Grid */}
-            <div>
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-4 uppercase tracking-wider">Quórum da Sessão</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {stats.map((stat) => {
-                  const Icon = stat.icon;
-                  return (
-                    <div key={stat.label} className="bg-white dark:bg-surface-dark p-4 rounded-xl border border-slate-200 dark:border-border-dark shadow-sm flex flex-col items-center justify-center text-center gap-3">
-                      <div className={`size-12 rounded-full flex items-center justify-center ${stat.bg} ${stat.color}`}>
-                        <Icon size={24} />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none">{stat.value}</p>
-                        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider">{stat.label}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Pautas */}
-              <div className="lg:col-span-2 space-y-4">
-                <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Pautas em Votação</h4>
-                {topics.length === 0 ? (
-                  <div className="bg-white dark:bg-surface-dark p-8 rounded-2xl border border-slate-200 dark:border-border-dark text-center text-slate-500 flex flex-col items-center justify-center gap-3">
-                    <AlertCircle size={32} className="text-slate-400" />
-                    <p>Nenhuma pauta cadastrada para esta assembleia.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {topics.map(t => {
-                      const total = t.votes.total;
-                      const simPct = total > 0 ? Math.round((t.votes.sim / total) * 100) : 0;
-                      const naoPct = total > 0 ? Math.round((t.votes.nao / total) * 100) : 0;
-                      const absPct = total > 0 ? Math.round((t.votes.abstencao / total) * 100) : 0;
-
-                      return (
-                        <div key={t.id} className="bg-white dark:bg-surface-dark p-5 rounded-xl border border-slate-200 dark:border-border-dark shadow-sm flex flex-col gap-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <h4 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-2 leading-tight" title={t.title}>
-                              {t.title}
-                            </h4>
-                            <span className={`text-[10px] font-bold px-2 py-1 rounded-lg shrink-0 ${
-                              t.status === 'OPEN' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' :
-                              t.status === 'CLOSED' ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400' :
-                              'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'
-                            }`}>
-                              {t.status === 'OPEN' ? 'ABERTA' : t.status === 'CLOSED' ? 'ENCERRADA' : 'RASCUNHO'}
-                            </span>
-                          </div>
-                          
-                          {total === 0 ? (
-                            <div className="mt-auto pt-2">
-                               <p className="text-xs text-slate-400 italic">Nenhum voto registrado.</p>
-                            </div>
-                          ) : (
-                            <div className="mt-auto space-y-3">
-                              <div className="h-2 w-full flex rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-                                <div style={{ width: `${simPct}%` }} className="bg-emerald-500" title={`Sim: ${simPct}%`} />
-                                <div style={{ width: `${naoPct}%` }} className="bg-red-500" title={`Não: ${naoPct}%`} />
-                                <div style={{ width: `${absPct}%` }} className="bg-slate-400" title={`Abstenção: ${absPct}%`} />
-                              </div>
-                              <div className="flex justify-between text-xs font-semibold">
-                                 <span className="text-emerald-600 dark:text-emerald-400 shrink-0">Sim: {t.votes.sim} ({simPct}%)</span>
-                                 <span className="text-red-600 dark:text-red-400 shrink-0">Não: {t.votes.nao} ({naoPct}%)</span>
-                                 <span className="text-slate-500 dark:text-slate-400 shrink-0">Abs: {t.votes.abstencao} ({absPct}%)</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Últimos Participantes */}
-              <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-slate-200 dark:border-border-dark shadow-sm flex flex-col h-fit">
-                <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-4 uppercase tracking-wider">Últimos Participantes</h4>
-                <div className="space-y-4">
-                  {recentUsers.length > 0 ? recentUsers.map((u, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-background-dark rounded-xl border border-slate-100 dark:border-border-dark">
-                      <div className="flex items-center gap-3">
-                        <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
-                          {u.full_name?.charAt(0) || 'U'}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{u.full_name || 'Usuário Sem Nome'}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                            Bloco {u.block_number || '?'} - Und {u.unit_number || '?'}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-medium text-slate-400 shrink-0 text-right ms-2">
-                        {getFormatTimeAgo(u.created_at)}
-                      </span>
-                    </div>
-                  )) : (
-                    <p className="text-sm text-slate-500 text-center py-4">Nenhum participante ainda.</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-white dark:bg-surface-dark p-12 rounded-2xl border border-slate-200 dark:border-border-dark shadow-sm text-center">
-            <div className="size-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
-              <TrendingUp size={28} className="text-slate-400" />
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Sem atividade no momento</h3>
-            <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-              Quando você abrir uma assembleia, os indicadores de quórum e votação aparecerão agrupados aqui.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* 3. HISTÓRICO DE ASSEMBLEIAS */}
-      <div className="space-y-6 pt-6" data-html2canvas-ignore="true">
-        <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700">
-            <History size={20} className="text-slate-500 dark:text-slate-400" />
-          </div>
-          <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Histórico de Sessões</h3>
+        <div className="overflow-x-auto bg-[#1f2937]">
+          <table className="w-full text-left text-sm text-gray-400">
+            <thead className="bg-[#1f2433] text-xs uppercase text-gray-500">
+              <tr>
+                <th className="px-6 py-3 font-semibold" scope="col">Data <ChevronDown className="inline w-3 h-3 ml-1" /></th>
+                <th className="px-6 py-3 font-semibold" scope="col">Assembleia</th>
+                <th className="px-6 py-3 font-semibold" scope="col">Status</th>
+                <th className="px-6 py-3 font-semibold" scope="col">Formato</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#2a3042]">
+              {pastAssemblies.length > 0 ? (
+                pastAssemblies.map((a) => (
+                  <tr key={a.id} className="hover:bg-[#2a3042]/50 transition">
+                    <td className="px-6 py-4 whitespace-nowrap"><CalendarDays className="inline w-4 h-4 mr-2" />{new Date(a.assembly_date).toLocaleDateString()}</td>
+                    <td className="px-6 py-4">{a.title}</td>
+                    <td className="px-6 py-4">
+                      {a.status === 'CLOSED' ? (
+                        <span className="bg-gray-600/30 text-gray-300 text-[10px] font-bold px-3 py-1 rounded-full border border-gray-600/50">ENCERRADA</span>
+                      ) : (
+                        <span className="bg-yellow-500/20 text-yellow-500 text-[10px] font-bold px-3 py-1 rounded-full border border-yellow-500/30">RASCUNHO</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {a.format === 'VIRTUAL' ? 'Online' : a.format === 'PRESENCIAL' ? 'Presencial' : 'Híbrida'}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500">Nenhuma sessão anterior encontrada.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-
-        {pastAssemblies.length === 0 ? (
-          <div className="bg-white dark:bg-surface-dark p-8 rounded-2xl border border-slate-200 dark:border-border-dark text-center text-slate-500">
-             Nenhuma assembleia anterior encontrada neste condomínio.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {pastAssemblies.map((assembly) => (
-              <div key={assembly.id} className="bg-white dark:bg-surface-dark p-5 rounded-2xl border border-slate-200 dark:border-border-dark shadow-sm flex flex-col gap-4 transition-all hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
-                    <h4 className="font-bold text-slate-900 dark:text-white line-clamp-2 leading-tight" title={assembly.title}>
-                      {assembly.title}
-                    </h4>
-                    <span className={`inline-block mt-2 text-[10px] font-bold px-2 py-1 rounded-lg ${
-                      assembly.status === 'CLOSED' ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400' :
-                      'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'
-                    }`}>
-                      {assembly.status === 'CLOSED' ? 'ENCERRADA' : 'RASCUNHO'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-auto pt-4 border-t border-slate-100 dark:border-border-dark flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  <div className="flex items-center gap-1.5">
-                    <CalendarDays size={14} />
-                    {new Date(assembly.assembly_date).toLocaleDateString()}
-                  </div>
-                  <div className="uppercase tracking-wide">
-                     {assembly.format === 'VIRTUAL' ? 'Online' : assembly.format === 'PRESENCIAL' ? 'Híbrida' : 'Presencial'}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      </section>
 
     </div>
   );
