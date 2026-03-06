@@ -6,9 +6,9 @@ import type { AppError } from '../services/types';
 export function useAssemblyDashboard(condoId: string | undefined) {
   const [data, setData] = useState<DashboardData>({
     condoInfo: null,
-    stats: { participants: 0, unitsPresent: 0, activePolls: 0 },
-    featuredTopic: null,
-    chartData: [],
+    activeAssembly: null,
+    quorum: { totalResidents: 0, present: 0, titulares: 0, inquilinos: 0, proxies: 0, missing: 0 },
+    topics: [],
     recentUsers: []
   });
   const [loading, setLoading] = useState(true);
@@ -41,11 +41,21 @@ export function useAssemblyDashboard(condoId: string | undefined) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'votes' }, load)
       .subscribe();
 
+    const checkinsSub = supabase.channel('checkins-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'checkins' }, load)
+      .subscribe();
+
+    const assembliesSub = supabase.channel('assemblies-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'assemblies' }, load)
+      .subscribe();
+
     return () => {
       cancelled = true;
       supabase.removeChannel(profilesSub);
       supabase.removeChannel(topicsSub);
       supabase.removeChannel(votesSub);
+      supabase.removeChannel(checkinsSub);
+      supabase.removeChannel(assembliesSub);
     };
   }, [condoId]);
 
