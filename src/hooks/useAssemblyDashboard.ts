@@ -9,7 +9,8 @@ export function useAssemblyDashboard(condoId: string | undefined) {
     activeAssembly: null,
     quorum: { totalResidents: 0, present: 0, titulares: 0, inquilinos: 0, proxies: 0, missing: 0 },
     topics: [],
-    recentUsers: []
+    recentUsers: [],
+    pastAssemblies: []
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AppError | null>(null);

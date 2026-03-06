@@ -25,6 +25,13 @@ export type DashboardData = {
     votes: { sim: number; nao: number; abstencao: number; total: number };
   }[];
   recentUsers: { id?: string; full_name: string | null; block_number: string | null; unit_number: string | null; created_at: string }[];
+  pastAssemblies: {
+    id: string;
+    title: string;
+    assembly_date: string;
+    format: string | null;
+    status: string;
+  }[];
 };
 
 export async function getDashboardData(condoId: string): Promise<Result<DashboardData>> {
@@ -34,17 +41,20 @@ export async function getDashboardData(condoId: string): Promise<Result<Dashboar
       activeAssembly: null,
       quorum: { totalResidents: 0, present: 0, titulares: 0, inquilinos: 0, proxies: 0, missing: 0 },
       topics: [],
-      recentUsers: []
+      recentUsers: [],
+      pastAssemblies: []
     };
 
-    const [{ data: condoR }, { data: recentUsersR }, { count: totalResidentsR }] = await Promise.all([
+    const [{ data: condoR }, { data: recentUsersR }, { count: totalResidentsR }, { data: pastAssembliesR }] = await Promise.all([
       supabase.from('condos').select('trade_name, invite_code').eq('id', condoId).single(),
       supabase.from('profiles').select('full_name, block_number, unit_number, created_at').eq('role', 'RESIDENT').eq('condo_id', condoId).order('created_at', { ascending: false }).limit(5),
       supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'RESIDENT').eq('condo_id', condoId),
+      supabase.from('assemblies').select('id, title, assembly_date, format, status').eq('condo_id', condoId).neq('status', 'OPEN').order('assembly_date', { ascending: false }).limit(5)
     ]);
     
     defaultData.condoInfo = condoR || null;
     defaultData.recentUsers = recentUsersR || [];
+    defaultData.pastAssemblies = pastAssembliesR || [];
     
     const totalResidents = totalResidentsR || 0;
     defaultData.quorum.totalResidents = totalResidents;
