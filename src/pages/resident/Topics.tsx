@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Clock, Loader2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, Loader2, Eye } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -8,7 +8,7 @@ type Topic = {
   id: string;
   title: string;
   description: string;
-  status: 'OPEN' | 'CLOSED' | 'DRAFT';
+  status: 'OPEN' | 'CLOSED' | 'DRAFT' | 'PUBLISHED';
   created_at: string;
   // Computed property after checking votes table
   user_voted?: boolean;
@@ -137,10 +137,11 @@ export default function Topics() {
                 <div className="mb-2">
                   <span className={`text-[10px] font-bold uppercase tracking-widest ${
                     topic.status === 'OPEN' && !topic.user_voted ? 'text-green-400' 
+                    : topic.status === 'PUBLISHED' ? 'text-blue-400'
                     : topic.user_voted ? 'text-slate-400'
                     : 'text-slate-500'
                   }`}>
-                    {topic.status === 'OPEN' ? 'Ativa' : 'Encerrada'}
+                    {topic.status === 'OPEN' ? 'Em Votação' : topic.status === 'PUBLISHED' ? 'Aguardando Votação' : 'Encerrada'}
                   </span>
                 </div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight mb-2">
@@ -165,6 +166,11 @@ export default function Topics() {
                         Votar
                       </span>
                     </>
+                  ) : topic.status === 'PUBLISHED' ? (
+                    <div className="flex items-center gap-1.5 text-blue-500 dark:text-blue-400">
+                      <Eye size={16} />
+                      <span className="text-[11px] font-bold uppercase tracking-wider">Leitura (Em breve)</span>
+                    </div>
                   ) : (
                     <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Fechada</span>
                   )}

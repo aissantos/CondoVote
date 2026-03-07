@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Clock, CheckCircle2, Loader2, Lock, ArrowLeft, Paperclip } from 'lucide-react';
+import { Plus, Edit2, Trash2, Clock, CheckCircle2, Loader2, Lock, ArrowLeft, Paperclip, Play, Eye } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -11,7 +11,7 @@ type Topic = {
   id: string;
   title: string;
   description: string;
-  status: 'OPEN' | 'CLOSED' | 'DRAFT';
+  status: 'OPEN' | 'CLOSED' | 'DRAFT' | 'PUBLISHED';
   assembly_id: string;
   attachment_url?: string;
   created_at: string;
@@ -39,7 +39,7 @@ export default function AdminTopics() {
   const [submitting, setSubmitting] = useState(false);
 
   // Confirm Dialog state
-  const [pendingAction, setPendingAction] = useState<{ id: string; type: 'delete' | 'close' } | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ id: string; type: 'delete' | 'close' | 'open' | 'publish' } | null>(null);
 
   useEffect(() => {
     if (assemblyId) {
@@ -81,7 +81,7 @@ export default function AdminTopics() {
     return `${profile?.condo_id}/${timestamp}_${cleanName}`;
   };
 
-  const handleSaveTopic = async (status: 'DRAFT' | 'OPEN') => {
+  const handleSaveTopic = async () => {
     if (!formData.title) {
       toast.warning('Título é obrigatório');
       return;
@@ -109,13 +109,11 @@ export default function AdminTopics() {
           type TopicUpdatePayload = {
             title: string;
             description: string;
-            status: string;
             attachment_url?: string;
           };
           const payload: TopicUpdatePayload = {
             title: formData.title,
-            description: formData.description,
-            status
+            description: formData.description
           };
           if (attachment_url) payload.attachment_url = attachment_url;
 
@@ -126,7 +124,7 @@ export default function AdminTopics() {
             {
               title: formData.title,
               description: formData.description,
-              status,
+              status: 'DRAFT',
               created_by: user?.id,
               condo_id: profile?.condo_id,
               assembly_id: assemblyId,
@@ -139,6 +137,7 @@ export default function AdminTopics() {
         setIsModalOpen(false);
         setEditingId(null);
         fetchTopics();
+        toast.success(editingId ? 'Pauta atualizada com sucesso!' : 'Pauta criada como rascunho com sucesso!');
     } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Erro desconhecido';
         toast.error('Erro ao salvar pauta: ' + msg);
@@ -149,6 +148,8 @@ export default function AdminTopics() {
 
   const handleDelete = (id: string) => setPendingAction({ id, type: 'delete' });
   const handleCloseTopic = (id: string) => setPendingAction({ id, type: 'close' });
+  const handleOpenTopicAction = (id: string) => setPendingAction({ id, type: 'open' });
+  const handlePublishTopicAction = (id: string) => setPendingAction({ id, type: 'publish' });
 
   const confirmAction = async () => {
     if (!pendingAction) return;
@@ -156,23 +157,37 @@ export default function AdminTopics() {
     if (type === 'delete') {
       const { error } = await supabase.from('topics').delete().eq('id', id);
       if (!error) fetchTopics();
-    } else {
+    } else if (type === 'close') {
       const { error } = await supabase.from('topics').update({ status: 'CLOSED' }).eq('id', id);
       if (!error) fetchTopics();
+    } else if (type === 'publish') {
+      const { error } = await supabase.from('topics').update({ status: 'PUBLISHED' }).eq('id', id);
+      if (!error) {
+        fetchTopics();
+        toast.success('Pauta publicada! Agora ela está visível para os moradores.');
+      }
+    } else if (type === 'open') {
+      const { error } = await supabase.from('topics').update({ status: 'OPEN' }).eq('id', id);
+      if (!error) {
+        fetchTopics();
+        toast.success('Votação iniciada com sucesso!');
+      }
     }
     setPendingAction(null);
   };
 
   // Funções de auxílio visual
   const getStatusLabel = (status: string) => {
-    if (status === 'OPEN') return 'Ativa';
+    if (status === 'OPEN') return 'Em Votação';
     if (status === 'CLOSED') return 'Encerrada';
+    if (status === 'PUBLISHED') return 'Publicada (Aguardando)';
     return 'Rascunho';
   };
 
   const getStatusStyle = (status: string) => {
     if (status === 'OPEN') return 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400';
     if (status === 'CLOSED') return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400';
+    if (status === 'PUBLISHED') return 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400';
     return 'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400';
   };
 
@@ -242,11 +257,33 @@ export default function AdminTopics() {
 
                 <div className="flex flex-wrap items-center justify-between gap-2 mt-auto pt-4 border-t border-slate-100 dark:border-slate-800">
                   <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${getStatusStyle(topic.status)}`}>
-                    {topic.status === 'OPEN' && <Clock size={12} />}
+                    {topic.status === 'OPEN' && <Play size={12} />}
+                    {topic.status === 'PUBLISHED' && <Eye size={12} />}
                     {topic.status === 'CLOSED' && <CheckCircle2 size={12} />}
+                    {topic.status === 'DRAFT' && <Clock size={12} />}
                     {getStatusLabel(topic.status)}
                   </span>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {topic.status === 'DRAFT' && (
+                      <button
+                        onClick={() => handlePublishTopicAction(topic.id)}
+                        aria-label={`Publicar pauta: ${topic.title}`}
+                        className="p-2 text-slate-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-blue-50 dark:hover:bg-blue-500/10"
+                        title="Tornar visível para os moradores"
+                      >
+                        <Eye size={16} aria-hidden="true" />
+                      </button>
+                    )}
+                    {topic.status === 'PUBLISHED' && (
+                      <button
+                        onClick={() => handleOpenTopicAction(topic.id)}
+                        aria-label={`Iniciar votação: ${topic.title}`}
+                        className="p-2 text-slate-400 hover:text-green-500 transition-colors rounded-lg hover:bg-green-50 dark:hover:bg-green-500/10"
+                        title="Iniciar contagem de votos agora"
+                      >
+                        <Play size={16} aria-hidden="true" />
+                      </button>
+                    )}
                     {topic.status === 'OPEN' && (
                       <button
                         onClick={() => handleCloseTopic(topic.id)}
@@ -334,11 +371,8 @@ export default function AdminTopics() {
           <button disabled={submitting} onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700 rounded-lg transition-colors">
             Cancelar
           </button>
-          <button disabled={submitting} onClick={() => handleSaveTopic('DRAFT')} className="px-4 py-2 text-sm font-bold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors">
-            {submitting ? 'Salvando...' : 'Salvar Rascunho'}
-          </button>
-          <button disabled={submitting} onClick={() => handleSaveTopic('OPEN')} className="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors shadow-md shadow-primary/20">
-            {submitting ? 'Salvando...' : 'Publicar e Abrir'}
+          <button disabled={submitting} onClick={() => handleSaveTopic()} className="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors shadow-md shadow-primary/20">
+            {submitting ? 'Salvando...' : 'Salvar Pauta'}
           </button>
         </div>
       </Modal>
@@ -347,13 +381,17 @@ export default function AdminTopics() {
         open={!!pendingAction}
         onClose={() => setPendingAction(null)}
         onConfirm={confirmAction}
-        title={pendingAction?.type === 'delete' ? 'Excluir Pauta' : 'Encerrar Votação'}
+        title={pendingAction?.type === 'delete' ? 'Excluir Pauta' : pendingAction?.type === 'open' ? 'Iniciar Votação' : pendingAction?.type === 'publish' ? 'Publicar Pauta' : 'Encerrar Votação'}
         message={
           pendingAction?.type === 'delete'
             ? 'Deseja realmente excluir esta pauta? Esta ação não pode ser desfeita.'
-            : 'Deseja realmente encerrar a votação desta pauta?'
+            : pendingAction?.type === 'publish'
+            ? 'Deseja publicar esta pauta? Os moradores poderão visualizá-la, mas a votação permanecerá bloqueada até que você a inicie.'
+            : pendingAction?.type === 'open'
+            ? 'Deseja iniciar a votação desta pauta? Os moradores poderão registrar seus votos a partir de agora.'
+            : 'Deseja realmente encerrar a votação desta pauta? Ninguém mais poderá votar.'
         }
-        confirmLabel={pendingAction?.type === 'delete' ? 'Excluir' : 'Encerrar'}
+        confirmLabel={pendingAction?.type === 'delete' ? 'Excluir' : pendingAction?.type === 'open' ? 'Iniciar Votação' : pendingAction?.type === 'publish' ? 'Publicar' : 'Encerrar'}
       />
     </div>
   );
